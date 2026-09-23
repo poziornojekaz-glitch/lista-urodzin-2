@@ -31,6 +31,12 @@ jobs:
       - name: Unpack project files
         run: python3 .github/scripts/unpack.py
 
+      - name: Verify files
+        run: |
+          ls -la
+          ls -la lib/ || echo "BRAK LIB"
+          head -20 pubspec.yaml || echo "BRAK PUBSPEC"
+
       - name: Patch Android for awesome_notifications
         run: python3 .github/scripts/patch_android.py
 
@@ -38,7 +44,7 @@ jobs:
         run: flutter pub get
 
       - name: Generate app icons
-        run: dart run flutter_launcher_icons
+        run: dart run flutter_launcher_icons || echo "Ikony pominięte - kontynuujemy"
 
       - name: Build APK
         run: flutter build apk --release
