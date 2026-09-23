@@ -31,10 +31,7 @@ jobs:
       - name: Unpack project files
         run: python3 .github/scripts/unpack.py
 
-      - name: Fix pubspec.yaml versions
-        run: sed -i 's/intl: \^0.20.3/intl: ^0.19.0/' pubspec.yaml
-
-      - name: Ensure logo asset exists
+      - name: Fix pubspec and prepare logo
         run: python3 .github/scripts/make_logo.py
 
       - name: Patch Android for awesome_notifications
