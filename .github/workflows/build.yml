@@ -31,11 +31,21 @@ jobs:
       - name: Unpack project files
         run: python3 .github/scripts/unpack.py
 
+      - name: Fix pubspec.yaml versions
+        run: |
+          sed -i 's/intl: \^0.20.3/intl: ^0.19.0/' pubspec.yaml
+          sed -i 's/intl: "\^0.20.3"/intl: ^0.19.0/' pubspec.yaml
+          echo "=== pubspec.yaml po zmianach ==="
+          cat pubspec.yaml
+
       - name: Verify files
         run: |
+          echo "--- root ---"
           ls -la
+          echo "--- lib ---"
           ls -la lib/ || echo "BRAK LIB"
-          head -20 pubspec.yaml || echo "BRAK PUBSPEC"
+          echo "--- lib main ---"
+          head -20 lib/main.dart || echo "BRAK MAIN"
 
       - name: Patch Android for awesome_notifications
         run: python3 .github/scripts/patch_android.py
