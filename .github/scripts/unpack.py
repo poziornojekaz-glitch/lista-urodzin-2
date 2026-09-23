@@ -1,42 +1,34 @@
 #!/usr/bin/env python3
-"""Rozpakowuje packed.txt na prawdziwe pliki projektu.
-NADPISUJE pliki utworzone przez flutter create."""
+"""Rozpakowuje packed.txt na pliki projektu.
+NIE rusza pubspec.yaml. Naklada pliki z overrides/."""
 import re
 import shutil
 from pathlib import Path
 
 packed_path = Path('packed.txt')
 if not packed_path.exists():
-    print('BLAD: brak pliku packed.txt!')
+    print('BLAD: brak packed.txt!')
     raise SystemExit(1)
 
 content = packed_path.read_text(encoding='utf-8').lstrip('\ufeff')
-lines = content.count('\n')
-print(f'Plik packed.txt: {len(content)} bajtow, {lines} linii')
+print(f'packed.txt: {len(content)} bajtow')
 
-# USUN domyslne pliki flutter create, ktore moga kolidowac
 lib_path = Path('lib')
 if lib_path.exists():
-    print('Usuwam istniejacy folder lib/ (utworzony przez flutter create)')
     shutil.rmtree(lib_path)
-
-# USUN domyslny pubspec.yaml
-pubspec = Path('pubspec.yaml')
-if pubspec.exists():
-    print('Usuwam istniejacy pubspec.yaml (utworzony przez flutter create)')
-    pubspec.unlink()
+    print('Usunieto: lib/')
 
 markers = list(re.finditer(r'^===FILE:(.+?)===\s*$', content, re.MULTILINE))
-print(f'Znaleziono {len(markers)} markerow ===FILE:')
-
-if not markers:
-    print('BLAD: nie znaleziono markerow w packed.txt')
-    print('Pierwsze 500 znakow:', repr(content[:500]))
-    raise SystemExit(1)
+print(f'Znaleziono {len(markers)} plikow w packed.txt')
 
 created = 0
 for i, m in enumerate(markers):
     file_path = m.group(1).strip()
+
+    if file_path == 'pubspec.yaml':
+        print(f'  -> pubspec.yaml (POMINIETY - jest osobno w repo)')
+        continue
+
     start = m.end()
     if start < len(content) and content[start] == '\n':
         start += 1
@@ -44,31 +36,44 @@ for i, m in enumerate(markers):
         start += 2
 
     end = markers[i + 1].start() if i + 1 < len(markers) else len(content)
-    file_content = content[start:end]
-    if file_content.endswith('\n'):
-        file_content = file_content[:-1]
-    if file_content.endswith('\r'):
-        file_content = file_content[:-1]
+    fc = content[start:end]
+    if fc.endswith('\n'):
+        fc = fc[:-1]
+    if fc.endswith('\r'):
+        fc = fc[:-1]
 
     p = Path(file_path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(file_content, encoding='utf-8')
+    p.write_text(fc, encoding='utf-8')
     created += 1
-    print(f'  -> {file_path} ({len(file_content)} bajtow)')
 
 print(f'Rozpakowano: {created} plikow.')
 
-# Weryfikacja - sprawdz czy nasz main.dart istnieje
+overrides_dir = Path('overrides')
+if overrides_dir.exists():
+    print('Nakladam pliki z overrides/...')
+    count = 0
+    for src in overrides_dir.rglob('*'):
+        if src.is_file():
+            rel = src.relative_to(overrides_dir)
+            dst = Path(str(rel))
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+            print(f'  OVERRIDE: {rel}')
+            count += 1
+    print(f'Nalożono {count} plikow.')
+
 main_file = Path('lib/main.dart')
 if not main_file.exists():
     print('BLAD: lib/main.dart NIE istnieje!')
     raise SystemExit(1)
-
-# Sprawdz czy to NASZ main.dart (nie domyslny flutterowy)
-main_content = main_file.read_text(encoding='utf-8')
-if 'listaurodzin' not in main_content and 'ListaUrodzinApp' not in main_content:
-    print('BLAD: lib/main.dart to domyslny plik Fluttera, nie nasz!')
-    print('Pierwsze 300 znakow:', repr(main_content[:300]))
+if 'ListaUrodzinApp' not in main_file.read_text(encoding='utf-8'):
+    print('BLAD: lib/main.dart to domyslny plik Fluttera!')
     raise SystemExit(1)
+print('OK: lib/main.dart poprawny')
 
-print('OK: lib/main.dart to nasz plik')
+pubspec_file = Path('pubspec.yaml')
+if not pubspec_file.exists():
+    print('BLAD: pubspec.yaml nie istnieje!')
+    raise SystemExit(1)
+print('OK: pubspec.yaml istnieje')
