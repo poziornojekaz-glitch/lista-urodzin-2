@@ -45,7 +45,8 @@ class Wiersz1Widget extends StatelessWidget {
     final String wiek =
         CustomFunctions.obliczWiekOsoby(itemData.datazapisz, lang);
 
-    const wagaTekstu = FontWeight.w500;
+    // Pogrubienie: w600 dla wszystkiego
+    const wagaTekstu = FontWeight.w600;
 
     return Container(
       width: double.infinity,
@@ -98,6 +99,7 @@ class Wiersz1Widget extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Imię
                   Text(
                     itemData.tekst.isNotEmpty
                         ? itemData.tekst
@@ -110,9 +112,12 @@ class Wiersz1Widget extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
+                  // Data (60%) + Wiek (40%, wyrównany do lewej)
                   Row(
                     children: [
+                      // Data + rok (zajmuje 60% miejsca)
                       Expanded(
+                        flex: 6,
                         child: Row(
                           children: [
                             Flexible(
@@ -142,12 +147,13 @@ class Wiersz1Widget extends StatelessWidget {
                           ],
                         ),
                       ),
-                      SizedBox(
-                        width: 80,
+                      // Wiek (zajmuje 40% miejsca, wyrównany do LEWEJ)
+                      Expanded(
+                        flex: 4,
                         child: wiek.isNotEmpty
                             ? Text(
                                 wiek,
-                                textAlign: TextAlign.right,
+                                textAlign: TextAlign.left,
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: wagaTekstu,
