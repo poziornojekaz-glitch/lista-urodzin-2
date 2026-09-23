@@ -32,26 +32,10 @@ jobs:
         run: python3 .github/scripts/unpack.py
 
       - name: Fix pubspec.yaml versions
-        run: |
-          sed -i 's/intl: \^0.20.3/intl: ^0.19.0/' pubspec.yaml
-          sed -i 's/intl: "\^0.20.3"/intl: ^0.19.0/' pubspec.yaml
+        run: sed -i 's/intl: \^0.20.3/intl: ^0.19.0/' pubspec.yaml
 
       - name: Ensure logo asset exists
-        run: |
-          mkdir -p assets/images
-          if [ ! -f assets/images/logo.jpg ]; then
-            echo "Tworzenie placeholdera logo.jpg..."
-            python3 -c "
-import base64, pathlib
-b64 = '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q=='
-p = pathlib.Path('assets/images/logo.jpg')
-p.write_bytes(base64.b64decode(b64))
-print('Utworzono placeholder')
-"
-          else
-            echo "logo.jpg juz istnieje - uzywam go"
-          fi
-          ls -la assets/images/
+        run: python3 .github/scripts/make_logo.py
 
       - name: Patch Android for awesome_notifications
         run: python3 .github/scripts/patch_android.py
@@ -60,7 +44,7 @@ print('Utworzono placeholder')
         run: flutter pub get
 
       - name: Generate app icons
-        run: dart run flutter_launcher_icons || echo "Ikony pominięte - kontynuujemy"
+        run: dart run flutter_launcher_icons || echo "Ikony pominiete"
 
       - name: Build APK
         run: flutter build apk --release
