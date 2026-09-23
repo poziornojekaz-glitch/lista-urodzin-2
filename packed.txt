@@ -1,0 +1,2694 @@
+===FILE:pubspec.yaml===
+name: listaurodzin
+description: Aplikacja do przypominania o urodzinach.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  awesome_notifications: ^0.10.0
+  provider: ^6.1.2
+  shared_preferences: ^2.3.2
+  share_plus: ^10.0.2
+  intl: ^0.20.3
+  google_fonts: ^6.2.1
+  permission_handler: ^11.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/logo.jpg"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/logo.jpg
+
+===FILE:lib/main.dart===
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'screens/home_page.dart';
+import 'services/notification_service.dart';
+import 'state/app_state.dart';
+import 'theme/app_theme.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting();
+
+  await NotificationService.initialize();
+
+  final appState = AppState();
+  await appState.initialize();
+
+  runApp(
+    ChangeNotifierProvider<AppState>.value(
+      value: appState,
+      child: const ListaUrodzinApp(),
+    ),
+  );
+}
+
+class ListaUrodzinApp extends StatelessWidget {
+  const ListaUrodzinApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final lang = context.watch<AppState>().wybranyJezyk;
+
+    return MaterialApp(
+      title: 'Lista Urodzin',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      locale: Locale(lang),
+      supportedLocales: const [
+        Locale('pl', 'PL'),
+        Locale('en', 'US'),
+        Locale('de', 'DE'),
+        Locale('ru', 'RU'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: const HomePage(),
+    );
+  }
+}
+
+===FILE:lib/models/lista_item.dart===
+class ListaItem {
+  int id;
+  String tekst;
+  DateTime? datazapisz;
+  bool czyRokWidoczny;
+  bool czyPowiadamiac;
+
+  ListaItem({
+    required this.id,
+    required this.tekst,
+    this.datazapisz,
+    this.czyRokWidoczny = false,
+    this.czyPowiadamiac = true,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'tekst': tekst,
+      'datazapisz': datazapisz?.toIso8601String(),
+      'czyRokWidoczny': czyRokWidoczny,
+      'czyPowiadamiac': czyPowiadamiac,
+    };
+  }
+
+  factory ListaItem.fromJson(Map<String, dynamic> json) {
+    return ListaItem(
+      id: json['id'] as int? ?? DateTime.now().millisecondsSinceEpoch,
+      tekst: json['tekst'] as String? ?? '',
+      datazapisz: json['datazapisz'] != null
+          ? DateTime.tryParse(json['datazapisz'] as String)
+          : null,
+      czyRokWidoczny: json['czyRokWidoczny'] as bool? ?? false,
+      czyPowiadamiac: json['czyPowiadamiac'] as bool? ?? true,
+    );
+  }
+
+  ListaItem copyWith({
+    int? id,
+    String? tekst,
+    DateTime? datazapisz,
+    bool? czyRokWidoczny,
+    bool? czyPowiadamiac,
+  }) {
+    return ListaItem(
+      id: id ?? this.id,
+      tekst: tekst ?? this.tekst,
+      datazapisz: datazapisz ?? this.datazapisz,
+      czyRokWidoczny: czyRokWidoczny ?? this.czyRokWidoczny,
+      czyPowiadamiac: czyPowiadamiac ?? this.czyPowiadamiac,
+    );
+  }
+}
+
+===FILE:lib/models/powiadomienia_settings.dart===
+class PowiadomieniaSettings {
+  bool alertWDniu;
+  int godzinaWDniu;
+  bool alertDzienPrzed;
+  int godzinaDzienPrzed;
+
+  PowiadomieniaSettings({
+    this.alertWDniu = true,
+    this.godzinaWDniu = 9,
+    this.alertDzienPrzed = true,
+    this.godzinaDzienPrzed = 18,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'alertWDniu': alertWDniu,
+      'godzinaWDniu': godzinaWDniu,
+      'alertDzienPrzed': alertDzienPrzed,
+      'godzinaDzienPrzed': godzinaDzienPrzed,
+    };
+  }
+
+  factory PowiadomieniaSettings.fromJson(Map<String, dynamic> json) {
+    return PowiadomieniaSettings(
+      alertWDniu: json['alertWDniu'] as bool? ?? true,
+      godzinaWDniu: json['godzinaWDniu'] as int? ?? 9,
+      alertDzienPrzed: json['alertDzienPrzed'] as bool? ?? true,
+      godzinaDzienPrzed: json['godzinaDzienPrzed'] as int? ?? 18,
+    );
+  }
+
+  PowiadomieniaSettings copyWith({
+    bool? alertWDniu,
+    int? godzinaWDniu,
+    bool? alertDzienPrzed,
+    int? godzinaDzienPrzed,
+  }) {
+    return PowiadomieniaSettings(
+      alertWDniu: alertWDniu ?? this.alertWDniu,
+      godzinaWDniu: godzinaWDniu ?? this.godzinaWDniu,
+      alertDzienPrzed: alertDzienPrzed ?? this.alertDzienPrzed,
+      godzinaDzienPrzed: godzinaDzienPrzed ?? this.godzinaDzienPrzed,
+    );
+  }
+}
+
+===FILE:lib/models/share_item.dart===
+class ListaDoUdostepnienia {
+  String przekazimie;
+  DateTime? przekazdate;
+  bool czyprzekazac;
+
+  ListaDoUdostepnienia({
+    required this.przekazimie,
+    this.przekazdate,
+    this.czyprzekazac = false,
+  });
+}
+
+===FILE:lib/services/notification_service.dart===
+import 'dart:ui';
+import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:intl/intl.dart';
+import '../models/lista_item.dart';
+import '../models/powiadomienia_settings.dart';
+import '../utils/translations.dart';
+
+class NotificationService {
+  static const String channelKey = 'urodziny_channel';
+
+  static Future<void> initialize() async {
+    await AwesomeNotifications().initialize(
+      null,
+      [
+        NotificationChannel(
+          channelKey: channelKey,
+          channelName: 'Urodziny',
+          channelDescription: 'Kanal powiadomien o urodzinach',
+          defaultColor: const Color(0xFF9D50BB),
+          ledColor: const Color(0xFFFFFFFF),
+          importance: NotificationImportance.Max,
+          channelShowBadge: true,
+        )
+      ],
+      debug: false,
+    );
+  }
+
+  static Future<bool> requestPermission() async {
+    bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
+    if (!isAllowed) {
+      isAllowed = await AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+    return isAllowed;
+  }
+
+  static Future<void> zaplanujUrodzinyFinal(
+    List<ListaItem> listaUrodzin,
+    PowiadomieniaSettings ustawienia,
+    String lang,
+  ) async {
+    try {
+      await AwesomeNotifications().cancelAllSchedules();
+
+      String localTimeZone;
+      try {
+        localTimeZone = await AwesomeNotifications().getLocalTimeZoneIdentifier();
+      } catch (_) {
+        localTimeZone = 'UTC';
+      }
+
+      String txtDzisiaj = AppTranslations.tr('reminder_today', lang);
+      String txtJutro = AppTranslations.tr('reminder_tomorrow', lang);
+
+      for (int i = 0; i < listaUrodzin.length; i++) {
+        var osoba = listaUrodzin[i];
+
+        if (osoba.czyPowiadamiac == false) continue;
+
+        String imie = osoba.tekst.isNotEmpty ? osoba.tekst : '???';
+        DateTime? dataUro = osoba.datazapisz;
+        int baseId = osoba.id;
+
+        if (dataUro == null) continue;
+
+        String dataTekst = DateFormat("d MMMM", lang).format(dataUro);
+        String trescPowiadomienia = "$imie, $dataTekst";
+
+        if (ustawienia.alertWDniu) {
+          await AwesomeNotifications().createNotification(
+            content: NotificationContent(
+              id: (baseId % 100000) + 100000,
+              channelKey: channelKey,
+              title: txtDzisiaj,
+              body: trescPowiadomienia,
+              notificationLayout: NotificationLayout.Default,
+            ),
+            schedule: NotificationCalendar(
+              month: dataUro.month,
+              day: dataUro.day,
+              hour: ustawienia.godzinaWDniu,
+              minute: 0,
+              second: 0,
+              millisecond: 0,
+              repeats: true,
+              allowWhileIdle: true,
+              preciseAlarm: true,
+              timeZone: localTimeZone,
+            ),
+          );
+        }
+
+        if (ustawienia.alertDzienPrzed) {
+          DateTime dataPomocnicza = DateTime(2024, dataUro.month, dataUro.day);
+          DateTime dzienWczesniej =
+              dataPomocnicza.subtract(const Duration(days: 1));
+
+          await AwesomeNotifications().createNotification(
+            content: NotificationContent(
+              id: (baseId % 100000) + 200000,
+              channelKey: channelKey,
+              title: txtJutro,
+              body: trescPowiadomienia,
+              notificationLayout: NotificationLayout.Default,
+            ),
+            schedule: NotificationCalendar(
+              month: dzienWczesniej.month,
+              day: dzienWczesniej.day,
+              hour: ustawienia.godzinaDzienPrzed,
+              minute: 0,
+              second: 0,
+              millisecond: 0,
+              repeats: true,
+              allowWhileIdle: true,
+              preciseAlarm: true,
+              timeZone: localTimeZone,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Ignorujemy bledy aby aplikacja sie nie zawiesila
+    }
+  }
+}
+
+===FILE:lib/services/storage_service.dart===
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/lista_item.dart';
+import '../models/powiadomienia_settings.dart';
+
+class StorageService {
+  static const String _keyUrodziny = 'urodziny_lista_v1';
+  static const String _keyPowiadomienia = 'powiadomienia_settings_v1';
+  static const String _keyJezyk = 'wybrany_jezyk_v1';
+
+  static Future<void> saveUrodziny(List<ListaItem> lista) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = jsonEncode(lista.map((e) => e.toJson()).toList());
+    await prefs.setString(_keyUrodziny, jsonString);
+  }
+
+  static Future<List<ListaItem>> loadUrodziny() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_keyUrodziny);
+    if (jsonString == null || jsonString.isEmpty) {
+      return [];
+    }
+
+    try {
+      final List<dynamic> decoded = jsonDecode(jsonString);
+      return decoded.map((e) => ListaItem.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<void> saveSettings(PowiadomieniaSettings settings) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = jsonEncode(settings.toJson());
+    await prefs.setString(_keyPowiadomienia, jsonString);
+  }
+
+  static Future<PowiadomieniaSettings> loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_keyPowiadomienia);
+    if (jsonString == null || jsonString.isEmpty) {
+      return PowiadomieniaSettings();
+    }
+
+    try {
+      final Map<String, dynamic> decoded = jsonDecode(jsonString);
+      return PowiadomieniaSettings.fromJson(decoded);
+    } catch (e) {
+      return PowiadomieniaSettings();
+    }
+  }
+
+  static Future<void> saveLanguage(String lang) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyJezyk, lang);
+  }
+
+  static Future<String> loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyJezyk) ?? 'pl';
+  }
+}
+
+===FILE:lib/state/app_state.dart===
+import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+import '../models/lista_item.dart';
+import '../models/powiadomienia_settings.dart';
+import '../models/share_item.dart';
+import '../services/storage_service.dart';
+import '../services/notification_service.dart';
+import '../utils/custom_functions.dart';
+
+class AppState extends ChangeNotifier {
+  List<ListaItem> _urodzinyList = [];
+  PowiadomieniaSettings _powiadomienia = PowiadomieniaSettings();
+  String _wybranyJezyk = 'pl';
+  List<ListaDoUdostepnienia> _tymczasowaListaShare = [];
+  bool _isInitialized = false;
+
+  List<ListaItem> get urodzinyList => _urodzinyList;
+  PowiadomieniaSettings get powiadomienia => _powiadomienia;
+  String get wybranyJezyk => _wybranyJezyk;
+  List<ListaDoUdostepnienia> get tymczasowaListaShare => _tymczasowaListaShare;
+  bool get isInitialized => _isInitialized;
+
+  Future<void> initialize() async {
+    _urodzinyList = await StorageService.loadUrodziny();
+    _powiadomienia = await StorageService.loadSettings();
+    _wybranyJezyk = await StorageService.loadLanguage();
+
+    _urodzinyList = CustomFunctions.sortujUrodziny(_urodzinyList);
+    _isInitialized = true;
+    notifyListeners();
+
+    await reschedulNotifications();
+  }
+
+  Future<void> setLanguage(String lang) async {
+    _wybranyJezyk = lang;
+    await StorageService.saveLanguage(lang);
+    notifyListeners();
+    await reschedulNotifications();
+  }
+
+  Future<void> addUrodziny(ListaItem item) async {
+    _urodzinyList.insert(0, item);
+    _urodzinyList = CustomFunctions.sortujUrodziny(_urodzinyList);
+    await StorageService.saveUrodziny(_urodzinyList);
+    notifyListeners();
+    await reschedulNotifications();
+  }
+
+  Future<void> updateUrodziny(int index, ListaItem item) async {
+    if (index >= 0 && index < _urodzinyList.length) {
+      _urodzinyList[index] = item;
+      _urodzinyList = CustomFunctions.sortujUrodziny(_urodzinyList);
+      await StorageService.saveUrodziny(_urodzinyList);
+      notifyListeners();
+      await reschedulNotifications();
+    }
+  }
+
+  Future<void> removeUrodziny(int index) async {
+    if (index >= 0 && index < _urodzinyList.length) {
+      _urodzinyList.removeAt(index);
+      await StorageService.saveUrodziny(_urodzinyList);
+      notifyListeners();
+      await reschedulNotifications();
+    }
+  }
+
+  Future<void> togglePowiadamiac(int index, bool newValue) async {
+    if (index >= 0 && index < _urodzinyList.length) {
+      _urodzinyList[index].czyPowiadamiac = newValue;
+      await StorageService.saveUrodziny(_urodzinyList);
+      notifyListeners();
+      await reschedulNotifications();
+    }
+  }
+
+  Future<void> updatePowiadomienia(PowiadomieniaSettings newSettings) async {
+    _powiadomienia = newSettings;
+    await StorageService.saveSettings(_powiadomienia);
+    notifyListeners();
+    await reschedulNotifications();
+  }
+
+  void prepareShareList() {
+    _tymczasowaListaShare = CustomFunctions.przepiszNaListeShare(_urodzinyList);
+    notifyListeners();
+  }
+
+  void toggleShareItem(int index, bool newValue) {
+    if (index >= 0 && index < _tymczasowaListaShare.length) {
+      _tymczasowaListaShare[index].czyprzekazac = newValue;
+      notifyListeners();
+    }
+  }
+
+  Future<void> reschedulNotifications() async {
+    try {
+      await NotificationService.zaplanujUrodzinyFinal(
+        _urodzinyList,
+        _powiadomienia,
+        _wybranyJezyk,
+      );
+    } catch (_) {
+      // Ignorujemy bledy
+    }
+  }
+}
+
+===FILE:lib/theme/app_theme.dart===
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class AppTheme {
+  static const Color primary = Color(0xFF27B2A4);
+  static const Color primaryDark = Color(0xFF15766E);
+  static const Color primaryDarker = Color(0xFF0D7C70);
+  static const Color primaryDeep = Color(0xFF15998C);
+  static const Color primaryLight = Color(0xFF6EE1D4);
+  static const Color primaryCyan = Color(0xFF92F5ED);
+  static const Color primarySky = Color(0xFFAAE0EB);
+  static const Color primaryActive = Color(0xFF3FD1C2);
+
+  static const Color background = Color(0xF7F4F6F8);
+  static const Color cardColor = Colors.white;
+  static const Color borderGrey = Color(0xFFBFC6CC);
+
+  static const Color redAlert = Color(0xFFDC0F0F);
+  static const Color deleteRed = Color(0xFFF54558);
+  static const Color blueNext = Color(0xFF0F08EB);
+
+  static const LinearGradient topGradient = LinearGradient(
+    colors: [primary, Color(0xC55BEFDE)],
+    stops: [0.0, 1.0],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
+  static const LinearGradient languageGradient = LinearGradient(
+    colors: [primary, primarySky],
+    stops: [0.0, 1.0],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
+  static const LinearGradient bottomGradient = LinearGradient(
+    colors: [Color(0xFF38D8CB), primarySky],
+    stops: [0.0, 1.0],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      scaffoldBackgroundColor: background,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primary,
+        primary: primary,
+        surface: cardColor,
+      ),
+      textTheme: GoogleFonts.interTightTextTheme(),
+    );
+  }
+}
+
+===FILE:lib/utils/custom_functions.dart===
+import '../models/lista_item.dart';
+import '../models/share_item.dart';
+
+class CustomFunctions {
+  static DateTime? ustawRok1900(DateTime? inputDate) {
+    if (inputDate == null) return null;
+    return DateTime(1900, inputDate.month, inputDate.day);
+  }
+
+  static String obliczWiekOsoby(DateTime? dataUrodzenia, String languageCode) {
+    if (dataUrodzenia == null || dataUrodzenia.year == 1900) {
+      return '';
+    }
+
+    DateTime dzis = DateTime.now();
+    int wiek = dzis.year - dataUrodzenia.year;
+
+    if (dzis.month < dataUrodzenia.month ||
+        (dzis.month == dataUrodzenia.month && dzis.day < dataUrodzenia.day)) {
+      wiek--;
+    }
+
+    if (wiek < 1) return '';
+
+    String lang = languageCode.toLowerCase();
+
+    switch (lang) {
+      case 'pl':
+        String slowo;
+        if (wiek == 1) {
+          slowo = 'rok';
+        } else {
+          int ostatniaCyfra = wiek % 10;
+          int dwieOstatnie = wiek % 100;
+          if (ostatniaCyfra >= 2 &&
+              ostatniaCyfra <= 4 &&
+              (dwieOstatnie < 10 || dwieOstatnie > 20)) {
+            slowo = 'lata';
+          } else {
+            slowo = 'lat';
+          }
+        }
+        return '$wiek $slowo';
+
+      case 'en':
+        return '$wiek ${wiek == 1 ? 'year old' : 'years old'}';
+
+      case 'de':
+        return '$wiek ${wiek == 1 ? 'Jahr alt' : 'Jahre alt'}';
+
+      case 'ru':
+        String slowo;
+        int n = wiek % 100;
+        int n1 = n % 10;
+        if (n > 10 && n < 20) {
+          slowo = 'лет';
+        } else if (n1 > 1 && n1 < 5) {
+          slowo = 'года';
+        } else if (n1 == 1) {
+          slowo = 'год';
+        } else {
+          slowo = 'лет';
+        }
+        return '$wiek $slowo';
+
+      default:
+        return '$wiek';
+    }
+  }
+
+  static List<ListaItem> sortujUrodziny(List<ListaItem> lista) {
+    List<ListaItem> posortowanaLista = List.from(lista);
+    DateTime dzis = DateTime.now();
+    DateTime dzisTylkoData = DateTime(dzis.year, dzis.month, dzis.day);
+
+    posortowanaLista.sort((a, b) {
+      if (a.datazapisz == null || b.datazapisz == null) return 0;
+
+      DateTime najblizszeA =
+          DateTime(dzis.year, a.datazapisz!.month, a.datazapisz!.day);
+      if (najblizszeA.isBefore(dzisTylkoData)) {
+        najblizszeA =
+            DateTime(dzis.year + 1, a.datazapisz!.month, a.datazapisz!.day);
+      }
+
+      DateTime najblizszeB =
+          DateTime(dzis.year, b.datazapisz!.month, b.datazapisz!.day);
+      if (najblizszeB.isBefore(dzisTylkoData)) {
+        najblizszeB =
+            DateTime(dzis.year + 1, b.datazapisz!.month, b.datazapisz!.day);
+      }
+
+      return najblizszeA.compareTo(najblizszeB);
+    });
+
+    return posortowanaLista;
+  }
+
+  static bool czyIstniejeDuplikatV3(
+    List<ListaItem> lista,
+    String noweImie,
+    DateTime? nowaData,
+    int indexEdycji,
+  ) {
+    if (nowaData == null) return false;
+
+    final String czysteNoweImie = noweImie.trim().toLowerCase();
+    if (czysteNoweImie.isEmpty) return false;
+
+    for (int i = 0; i < lista.length; i++) {
+      if (indexEdycji != -1 && i == indexEdycji) {
+        continue;
+      }
+
+      final item = lista[i];
+      final String imieZListy = item.tekst.trim().toLowerCase();
+      final bool imieToSamo = imieZListy == czysteNoweImie;
+      final bool dzienTenSam = item.datazapisz?.day == nowaData.day;
+      final bool miesiacTenSam = item.datazapisz?.month == nowaData.month;
+
+      if (imieToSamo && dzienTenSam && miesiacTenSam) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  static bool czyBliskoUrodziny(DateTime? dataUrodzin) {
+    if (dataUrodzin == null) return false;
+
+    final teraz = DateTime.now();
+    final dzis = DateTime(teraz.year, teraz.month, teraz.day);
+    final jutro = dzis.add(const Duration(days: 1));
+
+    final urodzinyWTymRoku =
+        DateTime(teraz.year, dataUrodzin.month, dataUrodzin.day);
+
+    return urodzinyWTymRoku.isAtSameMomentAs(dzis) ||
+        urodzinyWTymRoku.isAtSameMomentAs(jutro);
+  }
+
+  static bool czyToNajblizszaData(
+    DateTime? dataWiersza,
+    List<ListaItem>? listaUrodzin,
+  ) {
+    if (dataWiersza == null || listaUrodzin == null || listaUrodzin.isEmpty) {
+      return false;
+    }
+
+    final teraz = DateTime.now();
+    final dzis = DateTime(teraz.year, teraz.month, teraz.day);
+    final jutro = dzis.add(const Duration(days: 1));
+
+    bool czyJestJakisCzerwony = false;
+    for (var item in listaUrodzin) {
+      if (item.datazapisz == null) continue;
+      final d =
+          DateTime(teraz.year, item.datazapisz!.month, item.datazapisz!.day);
+      if (d.isAtSameMomentAs(dzis) || d.isAtSameMomentAs(jutro)) {
+        czyJestJakisCzerwony = true;
+        break;
+      }
+    }
+
+    if (czyJestJakisCzerwony) return false;
+
+    List<ListaItem> posortowana = List.from(listaUrodzin);
+    posortowana.sort((a, b) {
+      if (a.datazapisz == null || b.datazapisz == null) return 0;
+      int valA = a.datazapisz!.month * 100 + a.datazapisz!.day;
+      int valB = b.datazapisz!.month * 100 + b.datazapisz!.day;
+      return valA.compareTo(valB);
+    });
+
+    DateTime? najblizsza;
+    int dDzis = dzis.month * 100 + dzis.day;
+
+    for (var item in posortowana) {
+      if (item.datazapisz == null) continue;
+      int dItem = item.datazapisz!.month * 100 + item.datazapisz!.day;
+      if (dItem > dDzis) {
+        najblizsza = item.datazapisz;
+        break;
+      }
+    }
+
+    if (najblizsza == null && posortowana.isNotEmpty) {
+      najblizsza = posortowana.first.datazapisz;
+    }
+
+    return dataWiersza.month == najblizsza?.month &&
+        dataWiersza.day == najblizsza?.day;
+  }
+
+  static String budujTekstDoWysylki(
+    List<ListaDoUdostepnienia> listaShare,
+    String wybranyJezyk,
+  ) {
+    final wybrane =
+        listaShare.where((osoba) => osoba.czyprzekazac == true).toList();
+
+    if (wybrane.isEmpty) {
+      if (wybranyJezyk == 'pl') return "Nie zaznaczono żadnych osób.";
+      if (wybranyJezyk == 'de') return "Keine Personen ausgewählt.";
+      if (wybranyJezyk == 'ru') return "Никто не выбран.";
+      return "No persons selected.";
+    }
+
+    String tekst = "";
+    if (wybranyJezyk == 'pl') {
+      tekst = "Lista urodzin:\n\n";
+    } else if (wybranyJezyk == 'de') {
+      tekst = "Geburtstagsliste:\n\n";
+    } else if (wybranyJezyk == 'ru') {
+      tekst = "Список дней рождения:\n\n";
+    } else {
+      tekst = "Birthday list:\n\n";
+    }
+
+    for (var osoba in wybrane) {
+      if (osoba.przekazdate == null) continue;
+
+      String d = osoba.przekazdate!.day.toString().padLeft(2, '0');
+      String m = osoba.przekazdate!.month.toString().padLeft(2, '0');
+
+      String rokTekst = "";
+      if (osoba.przekazdate!.year > 1900) {
+        rokTekst = ".${osoba.przekazdate!.year}";
+      }
+
+      tekst += "${osoba.przekazimie}: $d.$m$rokTekst\n";
+    }
+
+    return tekst;
+  }
+
+  static List<ListaDoUdostepnienia> przepiszNaListeShare(
+    List<ListaItem> listaWejsciowa,
+  ) {
+    return listaWejsciowa.map((osoba) {
+      return ListaDoUdostepnienia(
+        przekazimie: osoba.tekst,
+        przekazdate: osoba.datazapisz,
+        czyprzekazac: false,
+      );
+    }).toList();
+  }
+}
+
+===FILE:lib/utils/translations.dart===
+class AppTranslations {
+  static const Map<String, Map<String, String>> _values = {
+    'pl': {
+      'calendar_title': 'Kalendarz wydarzeń',
+      'add_to_list': 'Dodaj do listy',
+      'info': 'Info',
+      'share_list': 'Udostępnij listę',
+      'share_confirm': 'Czy na pewno chcesz udostępnić dane?',
+      'back': 'WRÓĆ',
+      'yes': 'TAK',
+      'no': 'NIE',
+      'ok': 'OK',
+      'select_hint': 'Wybierz...',
+      'empty_list': 'W tej chwili Twoja lista jest pusta. Dodaj pierwsze wydarzenie!',
+      'enter_name': 'Wpisz Imię',
+      'enter_name_or_event': 'Wpisz Imię albo wydarzenie',
+      'duplicate_entry': '"Taki wpis już jest na liście."',
+      'year_label': 'Rok',
+      'notifications_enabled': 'Powiadomienia włączone.',
+      'notifications_disabled': 'Powiadomienia wyłączone.',
+      'edit_confirm': 'Czy na pewno chcesz zmienić Imię albo datę?',
+      'delete_confirm': 'Czy na pewno chcesz usunąć ten wpis?',
+      'instructions_title': 'Instrukcja',
+      'instructions_content': 'Aplikacja pomaga dbać o ważne daty urodzin Twoich bliskich.\n\n• Dodawaj osoby przyciskiem Dodaj do listy.\n• Wybierz datę i opcjonalnie rok urodzenia.\n• Kliknij dzwonek przy osobie, aby włączyć lub wyłączyć powiadomienia.\n• W ustawieniach powiadomień (ikona dzwonka u góry) wybierz dogodną godzinę przypomnień.\n• Udostępniaj wybrane daty znajomym przez ikonę koperty.',
+      'share_select_prompt': 'Zaznacz dane, które chcesz przesłać',
+      'share_ask': 'Czy udostępnić?',
+      'send': 'Wyślij',
+      'settings_notifications_title': 'Ustawienia ogólne powiadomień',
+      'day_before_event': 'Dzień przed wydarzeniem',
+      'on_event_day': 'w Dniu wydarzenia',
+      'reminder_today': 'przypomnienie na dziś',
+      'reminder_tomorrow': 'przypomnienie na jutro',
+      'cancel': 'Anuluj',
+      'load': 'Wczytaj',
+    },
+    'en': {
+      'calendar_title': 'Events Calendar',
+      'add_to_list': 'Add to list',
+      'info': 'Info',
+      'share_list': 'Share the list',
+      'share_confirm': 'Are you sure you want to share your data?',
+      'back': 'BACK',
+      'yes': 'YES',
+      'no': 'NO',
+      'ok': 'OK',
+      'select_hint': 'Select...',
+      'empty_list': 'At the moment your list is empty. Add your first event!',
+      'enter_name': 'Enter Name',
+      'enter_name_or_event': 'Enter name or event',
+      'duplicate_entry': '"Such an entry is already on the list."',
+      'year_label': 'Year',
+      'notifications_enabled': 'Notifications enabled.',
+      'notifications_disabled': 'Notifications disabled.',
+      'edit_confirm': 'Are you sure you want to change the Name or Date?',
+      'delete_confirm': 'Are you sure you want to delete this entry?',
+      'instructions_title': 'Instructions',
+      'instructions_content': 'This app helps you remember important birthdays of your loved ones.\n\n• Add people with the "Add to list" button.\n• Choose a date and optionally the birth year.\n• Tap the bell icon next to a person to enable/disable notifications.\n• In notification settings (top bell icon), choose convenient reminder hours.\n• Share selected dates via the envelope icon.',
+      'share_select_prompt': 'Select data you want to share',
+      'share_ask': 'Should I share?',
+      'send': 'Send',
+      'settings_notifications_title': 'General notification settings',
+      'day_before_event': 'Day before the event',
+      'on_event_day': 'On event day',
+      'reminder_today': 'reminder for today',
+      'reminder_tomorrow': 'reminder for tomorrow',
+      'cancel': 'Cancel',
+      'load': 'Import',
+    },
+    'de': {
+      'calendar_title': 'Ereigniskalender',
+      'add_to_list': 'Zur Liste hinzufügen',
+      'info': 'Info',
+      'share_list': 'Teilen Sie die Liste',
+      'share_confirm': 'Sind Sie sicher, dass Sie Ihre Daten freigeben möchten?',
+      'back': 'ZURÜCK',
+      'yes': 'JA',
+      'no': 'NEIN',
+      'ok': 'OK',
+      'select_hint': 'Wählen...',
+      'empty_list': 'Im Moment ist Ihre Liste leer. Fügen Sie Ihr erstes Ereignis hinzu!',
+      'enter_name': 'Name eingeben',
+      'enter_name_or_event': 'Name oder Ereignis eingeben',
+      'duplicate_entry': '„Ein solcher Eintrag ist bereits in der Liste.“',
+      'year_label': 'Jahr',
+      'notifications_enabled': 'Benachrichtigungen aktiviert.',
+      'notifications_disabled': 'Benachrichtigungen deaktiviert.',
+      'edit_confirm': 'Sind Sie sicher, dass Sie den Namen oder das Datum ändern möchten?',
+      'delete_confirm': 'Möchten Sie diesen Eintrag wirklich löschen?',
+      'instructions_title': 'Anleitung',
+      'instructions_content': 'Die App hilft Ihnen, sich an wichtige Geburtstage Ihrer Liebsten zu erinnern.\n\n• Fügen Sie Personen mit der Schaltfläche "Zur Liste hinzufügen" hinzu.\n• Wählen Sie das Datum und optional das Geburtsjahr.\n• Tippen Sie auf die Glocke neben einer Person, um Benachrichtigungen ein-/auszuschalten.\n• Wählen Sie in den Benachrichtigungseinstellungen die gewünschte Uhrzeit aus.\n• Teilen Sie ausgewählte Daten über das Umschlagsymbol.',
+      'share_select_prompt': 'Wählen Sie Daten, die Sie teilen möchten',
+      'share_ask': 'Soll ich teilen?',
+      'send': 'Senden',
+      'settings_notifications_title': 'Allgemeine Benachrichtigungseinstellungen',
+      'day_before_event': 'Tag vor dem Ereignis',
+      'on_event_day': 'am Tag des Ereignisses',
+      'reminder_today': 'Erinnerung für heute',
+      'reminder_tomorrow': 'Erinnerung für morgen',
+      'cancel': 'Abbrechen',
+      'load': 'Laden',
+    },
+    'ru': {
+      'calendar_title': 'Календарь событий',
+      'add_to_list': 'Добавить в список',
+      'info': 'Инфо',
+      'share_list': 'Поделиться списком',
+      'share_confirm': 'Вы уверены, что хотите поделиться своими данными?',
+      'back': 'НАЗАД',
+      'yes': 'ДА',
+      'no': 'НЕТ',
+      'ok': 'OK',
+      'select_hint': 'Выбрать...',
+      'empty_list': 'В данный момент ваш список пуст. Добавьте первое событие!',
+      'enter_name': 'Введите имя',
+      'enter_name_or_event': 'Введите имя или событие',
+      'duplicate_entry': '«Подобный пункт уже есть в списке».',
+      'year_label': 'Год',
+      'notifications_enabled': 'Уведомления включены.',
+      'notifications_disabled': 'Уведомления отключены.',
+      'edit_confirm': 'Вы уверены, что хотите изменить имя или дату?',
+      'delete_confirm': 'Вы уверены, что хотите удалить эту запись?',
+      'instructions_title': 'Инструкция',
+      'instructions_content': 'Приложение помогает помнить важные даты дней рождения близких людей.\n\n• Добавляйте людей кнопкой «Добавить в список».\n• Выберите дату и при желании год рождения.\n• Нажмите на колокольчик рядом с именем, чтобы включить/отключить напоминания.\n• В настройках уведомлений выберите удобное время оповещений.\n• Делитесь выбранными датами через иконку конверта.',
+      'share_select_prompt': 'Отметьте данные, которыми хотите поделиться',
+      'share_ask': 'Поделиться?',
+      'send': 'Отправить',
+      'settings_notifications_title': 'Общие настройки уведомлений',
+      'day_before_event': 'День до события',
+      'on_event_day': 'в День события',
+      'reminder_today': 'напоминание на сегодня',
+      'reminder_tomorrow': 'напоминание на завтра',
+      'cancel': 'Отмена',
+      'load': 'Загрузить',
+    },
+  };
+
+  static String tr(String key, String lang) {
+    return _values[lang]?[key] ?? _values['pl']?[key] ?? key;
+  }
+}
+
+===FILE:lib/widgets/custom_cupertino_picker.dart===
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+class CustomCupertinoPicker extends StatefulWidget {
+  const CustomCupertinoPicker({
+    super.key,
+    this.width,
+    this.height,
+    this.initialDate,
+    this.textColor,
+    this.backgroundColor,
+    this.fontSize,
+    this.languageCode = 'pl',
+    required this.showYear,
+    required this.onDateChanged,
+  });
+
+  final double? width;
+  final double? height;
+  final DateTime? initialDate;
+  final Color? textColor;
+  final Color? backgroundColor;
+  final double? fontSize;
+  final String languageCode;
+  final bool showYear;
+  final ValueChanged<DateTime> onDateChanged;
+
+  @override
+  State<CustomCupertinoPicker> createState() => _CustomCupertinoPickerState();
+}
+
+class _CustomCupertinoPickerState extends State<CustomCupertinoPicker> {
+  late FixedExtentScrollController _dayController;
+  late FixedExtentScrollController _monthController;
+  late FixedExtentScrollController _yearController;
+
+  late int _selectedDay;
+  late int _selectedMonth;
+  late int _selectedYear;
+
+  final Map<String, List<String>> _localizedMonths = {
+    'pl': ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'],
+    'ru': ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
+    'en': ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    'de': ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeInternalState();
+  }
+
+  void _initializeInternalState() {
+    final now = DateTime.now();
+
+    bool isDefault = widget.initialDate != null &&
+        widget.initialDate!.year == 2000 &&
+        widget.initialDate!.month == 1 &&
+        widget.initialDate!.day == 1;
+
+    if (widget.initialDate == null || isDefault) {
+      _selectedDay = now.day;
+      _selectedMonth = now.month;
+      _selectedYear = 2000;
+    } else {
+      _selectedDay = widget.initialDate!.day;
+      _selectedMonth = widget.initialDate!.month;
+      _selectedYear = widget.initialDate!.year;
+    }
+
+    _dayController = FixedExtentScrollController(initialItem: _selectedDay - 1);
+    _monthController = FixedExtentScrollController(initialItem: _selectedMonth - 1);
+    _yearController = FixedExtentScrollController(initialItem: _selectedYear - 1900);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onDateChanged(DateTime(_selectedYear, _selectedMonth, _selectedDay));
+    });
+  }
+
+  List<String> _getCurrentMonths() {
+    return _localizedMonths[widget.languageCode] ?? _localizedMonths['en']!;
+  }
+
+  void _validateAndEmit() {
+    final now = DateTime.now();
+    int daysInMonth = DateTime(_selectedYear, _selectedMonth + 1, 0).day;
+
+    if (_selectedDay > daysInMonth) {
+      _selectedDay = daysInMonth;
+      _dayController.animateToItem(_selectedDay - 1, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+    }
+
+    DateTime selectedFullDate = DateTime(_selectedYear, _selectedMonth, _selectedDay);
+
+    if (widget.showYear && selectedFullDate.isAfter(now)) {
+      _selectedYear = now.year;
+      _selectedMonth = now.month;
+      _selectedDay = now.day;
+
+      _yearController.animateToItem(_selectedYear - 1900, duration: const Duration(milliseconds: 400), curve: Curves.easeOut);
+      _monthController.animateToItem(_selectedMonth - 1, duration: const Duration(milliseconds: 400), curve: Curves.easeOut);
+      _dayController.animateToItem(_selectedDay - 1, duration: const Duration(milliseconds: 400), curve: Curves.easeOut);
+
+      selectedFullDate = DateTime(_selectedYear, _selectedMonth, _selectedDay);
+    }
+
+    HapticFeedback.selectionClick();
+    widget.onDateChanged(selectedFullDate);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final months = _getCurrentMonths();
+    final TextStyle textStyle = TextStyle(
+      color: widget.textColor ?? Colors.black,
+      fontSize: (widget.fontSize ?? 18.0) * (widget.showYear ? 0.9 : 1.0),
+      fontWeight: FontWeight.bold,
+    );
+
+    return Container(
+      width: widget.width,
+      height: widget.height,
+      color: widget.backgroundColor ?? Colors.transparent,
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: CupertinoPicker(
+              scrollController: _dayController,
+              itemExtent: 45,
+              looping: true,
+              onSelectedItemChanged: (i) {
+                setState(() => _selectedDay = i + 1);
+                _validateAndEmit();
+              },
+              children: List.generate(31, (i) => Center(child: Text('${i + 1}', style: textStyle))),
+            ),
+          ),
+          Expanded(
+            flex: 5,
+            child: CupertinoPicker(
+              scrollController: _monthController,
+              itemExtent: 45,
+              looping: true,
+              onSelectedItemChanged: (i) {
+                setState(() => _selectedMonth = i + 1);
+                _validateAndEmit();
+              },
+              children: months.map((name) => Center(child: Text(name, style: textStyle, overflow: TextOverflow.ellipsis))).toList(),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: widget.showYear
+                ? CupertinoPicker(
+                    scrollController: _yearController,
+                    itemExtent: 45,
+                    onSelectedItemChanged: (i) {
+                      setState(() => _selectedYear = 1900 + i);
+                      _validateAndEmit();
+                    },
+                    children: List.generate(151, (i) => Center(child: Text('${1900 + i}', style: textStyle))),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _dayController.dispose();
+    _monthController.dispose();
+    _yearController.dispose();
+    super.dispose();
+  }
+}
+
+===FILE:lib/widgets/hour_picker.dart===
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+
+class HourPicker extends StatefulWidget {
+  const HourPicker({
+    super.key,
+    this.width,
+    this.height,
+    this.initialHour,
+    this.textColor,
+    this.fontSize,
+    required this.onHourChanged,
+  });
+
+  final double? width;
+  final double? height;
+  final int? initialHour;
+  final Color? textColor;
+  final double? fontSize;
+  final ValueChanged<int> onHourChanged;
+
+  @override
+  State<HourPicker> createState() => _HourPickerState();
+}
+
+class _HourPickerState extends State<HourPicker> {
+  final List<int> hours = List.generate(13, (index) => index + 8);
+  late int selectedHour;
+
+  @override
+  void initState() {
+    super.initState();
+    int start = widget.initialHour ?? 8;
+    selectedHour = hours.contains(start) ? start : 8;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: widget.width,
+      height: widget.height,
+      child: CupertinoPicker(
+        backgroundColor: Colors.transparent,
+        itemExtent: 45,
+        scrollController: FixedExtentScrollController(initialItem: hours.indexOf(selectedHour)),
+        onSelectedItemChanged: (index) {
+          int picked = hours[index];
+          setState(() => selectedHour = picked);
+          widget.onHourChanged(picked);
+        },
+        children: hours.map((hour) => Center(
+          child: Text(
+            "$hour:00",
+            style: TextStyle(
+              color: widget.textColor ?? Colors.black,
+              fontSize: widget.fontSize ?? 20.0,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        )).toList(),
+      ),
+    );
+  }
+}
+
+===FILE:lib/widgets/pionowy_przelacznik.dart===
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+class PionowyPrzelacznik extends StatefulWidget {
+  const PionowyPrzelacznik({
+    super.key,
+    this.width,
+    this.height,
+    required this.initialValue,
+    required this.onChanged,
+    this.activeColor,
+    this.inactiveColor,
+  });
+
+  final double? width;
+  final double? height;
+  final bool initialValue;
+  final VoidCallback onChanged;
+  final Color? activeColor;
+  final Color? inactiveColor;
+
+  @override
+  State<PionowyPrzelacznik> createState() => _PionowyPrzelacznikState();
+}
+
+class _PionowyPrzelacznikState extends State<PionowyPrzelacznik> {
+  late bool _currentValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentValue = widget.initialValue;
+  }
+
+  @override
+  void didUpdateWidget(PionowyPrzelacznik oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialValue != widget.initialValue) {
+      setState(() {
+        _currentValue = widget.initialValue;
+      });
+    }
+  }
+
+  void _updateValue(bool newValue) {
+    if (_currentValue != newValue) {
+      setState(() {
+        _currentValue = newValue;
+      });
+      HapticFeedback.lightImpact();
+      widget.onChanged();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _updateValue(!_currentValue),
+      onVerticalDragUpdate: (details) {
+        if (details.primaryDelta! < -7) {
+          _updateValue(true);
+        } else if (details.primaryDelta! > 7) {
+          _updateValue(false);
+        }
+      },
+      child: Container(
+        width: widget.width ?? 40,
+        height: widget.height ?? 80,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: _currentValue
+              ? (widget.activeColor ?? const Color(0xFF24D193))
+              : (widget.inactiveColor ?? const Color(0xFFE0E3E7)),
+        ),
+        child: Stack(
+          children: [
+            AnimatedAlign(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              alignment: _currentValue ? Alignment.topCenter : Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Container(
+                  width: (widget.width ?? 40) - 8,
+                  height: (widget.width ?? 40) - 8,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+===FILE:lib/widgets/pusty_widget.dart===
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../state/app_state.dart';
+import '../utils/translations.dart';
+
+class PustyWidget extends StatelessWidget {
+  const PustyWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final lang = context.watch<AppState>().wybranyJezyk;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+        child: Text(
+          AppTranslations.tr('empty_list', lang),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF677681),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+===FILE:lib/widgets/wiersz1_widget.dart===
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../models/lista_item.dart';
+import '../state/app_state.dart';
+import '../theme/app_theme.dart';
+import '../utils/custom_functions.dart';
+import '../utils/translations.dart';
+import 'edytorwiersza_widget.dart';
+
+class Wiersz1Widget extends StatelessWidget {
+  const Wiersz1Widget({
+    super.key,
+    required this.itemData,
+    required this.itemIndex,
+  });
+
+  final ListaItem itemData;
+  final int itemIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final lang = state.wybranyJezyk;
+
+    Color dateColor = const Color(0xFF2C3E50);
+    if (CustomFunctions.czyBliskoUrodziny(itemData.datazapisz)) {
+      dateColor = AppTheme.redAlert;
+    } else if (CustomFunctions.czyToNajblizszaData(itemData.datazapisz, state.urodzinyList)) {
+      dateColor = AppTheme.blueNext;
+    }
+
+    String formattedDate = '';
+    String yearSuffix = '';
+    if (itemData.datazapisz != null) {
+      if (itemData.datazapisz!.year <= 1900) {
+        formattedDate = DateFormat("d MMMM", lang).format(itemData.datazapisz!);
+      } else {
+        formattedDate = DateFormat("d MMM", lang).format(itemData.datazapisz!);
+        yearSuffix = "${itemData.datazapisz!.year}";
+      }
+    }
+
+    final String wiek = CustomFunctions.obliczWiekOsoby(itemData.datazapisz, lang);
+
+    return Container(
+      width: double.infinity,
+      height: 84,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: Color(0x10000000), blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 6.0),
+            child: Checkbox(
+              value: itemData.czyPowiadamiac,
+              activeColor: AppTheme.primaryActive,
+              side: const BorderSide(color: Color(0xFFBFC6CC), width: 2),
+              onChanged: (newVal) async {
+                final val = newVal ?? false;
+                await context.read<AppState>().togglePowiadamiac(itemIndex, val);
+                if (context.mounted) {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      content: Text(
+                        val
+                            ? AppTranslations.tr('notifications_enabled', lang)
+                            : AppTranslations.tr('notifications_disabled', lang),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text(AppTranslations.tr('ok', lang)),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    itemData.tekst.isNotEmpty
+                        ? itemData.tekst
+                        : AppTranslations.tr('enter_name_or_event', lang),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2C3E50),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        formattedDate.isNotEmpty ? formattedDate : 'Dodaj Datę',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: dateColor,
+                        ),
+                      ),
+                      if (yearSuffix.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          yearSuffix,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: dateColor,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(width: 14),
+                      if (wiek.isNotEmpty)
+                        Text(
+                          wiek,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF556068),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                InkWell(
+                  onTap: () async {
+                    bool? confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        content: Text(AppTranslations.tr('edit_confirm', lang)),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: Text(AppTranslations.tr('no', lang)),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: Text(AppTranslations.tr('yes', lang)),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true && context.mounted) {
+                      await showModalBottomSheet(
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        context: context,
+                        builder: (ctx) => EdytorwierszaWidget(
+                          initialItem: itemData,
+                          editIndex: itemIndex,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Icon(
+                    Icons.border_color_outlined,
+                    color: Color(0xFF677681),
+                    size: 20,
+                  ),
+                ),
+                InkWell(
+                  onTap: () async {
+                    bool? confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        content: Text(AppTranslations.tr('delete_confirm', lang)),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: Text(AppTranslations.tr('no', lang)),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: Text(AppTranslations.tr('yes', lang)),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true && context.mounted) {
+                      await context.read<AppState>().removeUrodziny(itemIndex);
+                    }
+                  },
+                  child: const Icon(
+                    Icons.close_outlined,
+                    color: AppTheme.deleteRed,
+                    size: 22,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+===FILE:lib/widgets/wierszprzekaz_widget.dart===
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../models/share_item.dart';
+import '../state/app_state.dart';
+import '../theme/app_theme.dart';
+
+class WierszprzekazWidget extends StatelessWidget {
+  const WierszprzekazWidget({
+    super.key,
+    required this.itemOsoba,
+    required this.itemIndex,
+  });
+
+  final ListaDoUdostepnienia itemOsoba;
+  final int itemIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final lang = context.watch<AppState>().wybranyJezyk;
+
+    String dateFormatted = '';
+    String yearFormatted = '';
+
+    if (itemOsoba.przekazdate != null) {
+      dateFormatted = DateFormat("d MMMM", lang).format(itemOsoba.przekazdate!);
+      if (itemOsoba.przekazdate!.year > 1900) {
+        yearFormatted = "${itemOsoba.przekazdate!.year}";
+      }
+    }
+
+    return Container(
+      width: double.infinity,
+      height: 65,
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: Color(0x15000000), blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 8),
+          Checkbox(
+            value: itemOsoba.czyprzekazac,
+            activeColor: AppTheme.primary,
+            side: const BorderSide(color: AppTheme.primary, width: 2),
+            onChanged: (val) {
+              context.read<AppState>().toggleShareItem(itemIndex, val ?? false);
+            },
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  itemOsoba.przekazimie.isNotEmpty ? itemOsoba.przekazimie : 'Imię',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2C3E50),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      dateFormatted,
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF556068)),
+                    ),
+                    if (yearFormatted.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        yearFormatted,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF556068),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+===FILE:lib/widgets/edytorwiersza_widget.dart===
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../models/lista_item.dart';
+import '../state/app_state.dart';
+import '../theme/app_theme.dart';
+import '../utils/custom_functions.dart';
+import '../utils/translations.dart';
+import 'custom_cupertino_picker.dart';
+import 'pionowy_przelacznik.dart';
+
+class EdytorwierszaWidget extends StatefulWidget {
+  const EdytorwierszaWidget({
+    super.key,
+    this.initialItem,
+    this.editIndex = -1,
+  });
+
+  final ListaItem? initialItem;
+  final int editIndex;
+
+  @override
+  State<EdytorwierszaWidget> createState() => _EdytorwierszaWidgetState();
+}
+
+class _EdytorwierszaWidgetState extends State<EdytorwierszaWidget> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController;
+  late DateTime _selectedDate;
+  late bool _czyPokazacRok;
+
+  @override
+  void initState() {
+    super.initState();
+    final item = widget.initialItem;
+
+    if (item != null) {
+      _nameController = TextEditingController(text: item.tekst);
+      _czyPokazacRok = item.czyRokWidoczny;
+      _selectedDate = item.datazapisz ?? DateTime.now();
+    } else {
+      _nameController = TextEditingController(text: '');
+      _czyPokazacRok = false;
+      _selectedDate = DateTime.now();
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final lang = state.wybranyJezyk;
+    final size = MediaQuery.of(context).size;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: size.width * 0.95,
+            height: size.height * 0.58,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const [
+                BoxShadow(color: Color(0x33000000), blurRadius: 10, offset: Offset(0, 4)),
+              ],
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, right: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      InkWell(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(Icons.clear, color: Colors.white, size: 26),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: size.width * 0.88,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.primary, width: 2),
+                  ),
+                  child: Column(
+                    children: [
+                      Form(
+                        key: _formKey,
+                        child: TextFormField(
+                          controller: _nameController,
+                          autofocus: true,
+                          decoration: InputDecoration(
+                            hintText: AppTranslations.tr('enter_name', lang),
+                            hintStyle: const TextStyle(color: Color(0xFF8B97A2), fontWeight: FontWeight.w500),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFF25D2C0), width: 2),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFF25D2C0), width: 2),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return AppTranslations.tr('enter_name', lang);
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF25D2C0), width: 2),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              DateFormat("d MMMM", lang).format(_selectedDate),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF15766E)),
+                            ),
+                            if (_czyPokazacRok) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                "${_selectedDate.year}",
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF15766E)),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: size.width * 0.84,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: size.width * 0.70,
+                        child: CustomCupertinoPicker(
+                          initialDate: _selectedDate,
+                          showYear: _czyPokazacRok,
+                          languageCode: lang,
+                          textColor: const Color(0xFF2C3E50),
+                          onDateChanged: (newDate) {
+                            setState(() {
+                              _selectedDate = newDate;
+                            });
+                          },
+                        ),
+                      ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            AppTranslations.tr('year_label', lang),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF138378)),
+                          ),
+                          const SizedBox(height: 6),
+                          PionowyPrzelacznik(
+                            width: 44,
+                            height: 84,
+                            initialValue: _czyPokazacRok,
+                            activeColor: AppTheme.primary,
+                            inactiveColor: const Color(0xFFB3BAC6),
+                            onChanged: () {
+                              setState(() {
+                                _czyPokazacRok = !_czyPokazacRok;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  child: SizedBox(
+                    width: size.width * 0.28,
+                    height: 44,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (!_formKey.currentState!.validate()) {
+                          return;
+                        }
+
+                        final name = _nameController.text.trim();
+
+                        final isDuplicate = CustomFunctions.czyIstniejeDuplikatV3(
+                          state.urodzinyList,
+                          name,
+                          _selectedDate,
+                          widget.editIndex,
+                        );
+
+                        if (isDuplicate) {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              content: Text(AppTranslations.tr('duplicate_entry', lang)),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: Text(AppTranslations.tr('ok', lang)),
+                                ),
+                              ],
+                            ),
+                          );
+                          return;
+                        }
+
+                        final finalDate = _czyPokazacRok
+                            ? _selectedDate
+                            : CustomFunctions.ustawRok1900(_selectedDate);
+
+                        try {
+                          if (widget.editIndex >= 0 && widget.initialItem != null) {
+                            final updated = widget.initialItem!.copyWith(
+                              tekst: name,
+                              datazapisz: finalDate,
+                              czyRokWidoczny: _czyPokazacRok,
+                            );
+                            await state.updateUrodziny(widget.editIndex, updated);
+                          } else {
+                            final newItem = ListaItem(
+                              id: DateTime.now().millisecondsSinceEpoch,
+                              tekst: name,
+                              datazapisz: finalDate,
+                              czyRokWidoczny: _czyPokazacRok,
+                              czyPowiadamiac: true,
+                            );
+                            await state.addUrodziny(newItem);
+                          }
+                        } catch (_) {}
+
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Text(
+                        AppTranslations.tr('ok', lang),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+===FILE:lib/widgets/instrukcja_widget.dart===
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../state/app_state.dart';
+import '../theme/app_theme.dart';
+import '../utils/translations.dart';
+
+class InstrukcjaWidget extends StatelessWidget {
+  const InstrukcjaWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final lang = context.watch<AppState>().wybranyJezyk;
+    final size = MediaQuery.of(context).size;
+
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: size.width * 0.88,
+          height: size.height * 0.63,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: const [
+              BoxShadow(blurRadius: 10, color: Color(0x33000000), offset: Offset(0, 4)),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.close, color: Colors.white, size: 26),
+                      ),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.info_outlined, color: Color(0xFF1E9185), size: 26),
+                      const SizedBox(width: 8),
+                      Text(
+                        AppTranslations.tr('instructions_title', lang),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E9185),
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(top: 8, bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppTheme.primary, width: 1.5),
+                    ),
+                    child: SingleChildScrollView(
+                      child: Text(
+                        AppTranslations.tr('instructions_content', lang),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 14, height: 1.5, fontWeight: FontWeight.w500, color: Color(0xFF2C3E50)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+===FILE:lib/widgets/oknoprzekazu_widget.dart===
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import '../state/app_state.dart';
+import '../theme/app_theme.dart';
+import '../utils/custom_functions.dart';
+import '../utils/translations.dart';
+import 'wierszprzekaz_widget.dart';
+
+class OknoprzekazuWidget extends StatelessWidget {
+  const OknoprzekazuWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final lang = state.wybranyJezyk;
+    final shareList = state.tymczasowaListaShare;
+    final size = MediaQuery.of(context).size;
+
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: size.width * 0.90,
+          height: size.height * 0.75,
+          decoration: BoxDecoration(
+            color: AppTheme.background,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: const [
+              BoxShadow(color: Color(0x33000000), blurRadius: 10, offset: Offset(0, 4)),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        AppTranslations.tr('share_select_prompt', lang),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF248C80)),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.close, color: Colors.white, size: 22),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: shareList.isEmpty
+                      ? Center(
+                          child: Text(
+                            AppTranslations.tr('empty_list', lang),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      : ListView.separated(
+                          itemCount: shareList.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 6),
+                          itemBuilder: (context, index) {
+                            return WierszprzekazWidget(
+                              itemIndex: index,
+                              itemOsoba: state.tymczasowaListaShare[index],
+                            );
+                          },
+                        ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 12.0),
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      bool? confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (alertDialogContext) {
+                          return AlertDialog(
+                            content: Text(AppTranslations.tr('share_ask', lang)),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(alertDialogContext, false),
+                                child: Text(AppTranslations.tr('no', lang)),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(alertDialogContext, true),
+                                child: Text(AppTranslations.tr('yes', lang)),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+
+                      if (confirm == true && context.mounted) {
+                        final textToSend = CustomFunctions.budujTekstDoWysylki(
+                          state.tymczasowaListaShare,
+                          lang,
+                        );
+                        await Share.share(textToSend);
+                      }
+                    },
+                    icon: const Icon(Icons.email_outlined, color: Colors.white, size: 22),
+                    label: Text(
+                      AppTranslations.tr('send', lang),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+===FILE:lib/widgets/oknopowiadomien_widget.dart===
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/powiadomienia_settings.dart';
+import '../services/notification_service.dart';
+import '../state/app_state.dart';
+import '../theme/app_theme.dart';
+import '../utils/translations.dart';
+import 'hour_picker.dart';
+
+class OknopowiadomienWidget extends StatefulWidget {
+  const OknopowiadomienWidget({super.key});
+
+  @override
+  State<OknopowiadomienWidget> createState() => _OknopowiadomienWidgetState();
+}
+
+class _OknopowiadomienWidgetState extends State<OknopowiadomienWidget> {
+  late PowiadomieniaSettings _currentSettings;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentSettings = context.read<AppState>().powiadomienia.copyWith();
+  }
+
+  void _showNotificationAlert(bool isEnabled, String lang) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(
+          isEnabled
+              ? AppTranslations.tr('notifications_enabled', lang)
+              : AppTranslations.tr('notifications_disabled', lang),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppTranslations.tr('ok', lang)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final lang = state.wybranyJezyk;
+    final size = MediaQuery.of(context).size;
+
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: size.width * 0.95,
+          height: size.height * 0.60,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Colors.white, AppTheme.background],
+              stops: [0.0, 1.0],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: const [
+              BoxShadow(color: Color(0x33000000), blurRadius: 10, offset: Offset(0, 4)),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    InkWell(
+                      onTap: () async {
+                        await NotificationService.requestPermission();
+                        if (context.mounted) {
+                          await context.read<AppState>().updatePowiadomienia(_currentSettings);
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.close, color: Colors.white, size: 28),
+                      ),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  child: Text(
+                    AppTranslations.tr('settings_notifications_title', lang),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0D7C70)),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Container(
+                              height: 58,
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppTheme.primary, width: 2),
+                                boxShadow: const [
+                                  BoxShadow(color: Color(0x15000000), blurRadius: 4, offset: Offset(0, 2)),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Checkbox(
+                                    value: _currentSettings.alertDzienPrzed,
+                                    activeColor: AppTheme.primary,
+                                    onChanged: (val) {
+                                      final newVal = val ?? false;
+                                      setState(() {
+                                        _currentSettings.alertDzienPrzed = newVal;
+                                      });
+                                      _showNotificationAlert(newVal, lang);
+                                    },
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      AppTranslations.tr('day_before_event', lang),
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2C3E50)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Expanded(
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppTheme.primary, width: 2),
+                                  boxShadow: const [
+                                    BoxShadow(color: Color(0x15000000), blurRadius: 6, offset: Offset(0, 3)),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: HourPicker(
+                                    initialHour: _currentSettings.godzinaDzienPrzed,
+                                    textColor: const Color(0xFF15766E),
+                                    onHourChanged: (pickedHour) {
+                                      setState(() {
+                                        _currentSettings.godzinaDzienPrzed = pickedHour;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Container(
+                              height: 58,
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppTheme.primary, width: 2),
+                                boxShadow: const [
+                                  BoxShadow(color: Color(0x15000000), blurRadius: 4, offset: Offset(0, 2)),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Checkbox(
+                                    value: _currentSettings.alertWDniu,
+                                    activeColor: AppTheme.primary,
+                                    onChanged: (val) {
+                                      final newVal = val ?? false;
+                                      setState(() {
+                                        _currentSettings.alertWDniu = newVal;
+                                      });
+                                      _showNotificationAlert(newVal, lang);
+                                    },
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      AppTranslations.tr('on_event_day', lang),
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2C3E50)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Expanded(
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppTheme.primary, width: 2),
+                                  boxShadow: const [
+                                    BoxShadow(color: Color(0x15000000), blurRadius: 6, offset: Offset(0, 3)),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: HourPicker(
+                                    initialHour: _currentSettings.godzinaWDniu,
+                                    textColor: const Color(0xFF15766E),
+                                    onHourChanged: (pickedHour) {
+                                      setState(() {
+                                        _currentSettings.godzinaWDniu = pickedHour;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+===FILE:lib/screens/home_page.dart===
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/lista_item.dart';
+import '../services/notification_service.dart';
+import '../state/app_state.dart';
+import '../theme/app_theme.dart';
+import '../utils/translations.dart';
+import '../widgets/edytorwiersza_widget.dart';
+import '../widgets/instrukcja_widget.dart';
+import '../widgets/oknopowiadomien_widget.dart';
+import '../widgets/oknoprzekazu_widget.dart';
+import '../widgets/pusty_widget.dart';
+import '../widgets/wiersz1_widget.dart';
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await NotificationService.requestPermission();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final lang = state.wybranyJezyk;
+    final lista = state.urodzinyList;
+
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  height: 60,
+                  decoration: const BoxDecoration(
+                    gradient: AppTheme.topGradient,
+                    boxShadow: [
+                      BoxShadow(blurRadius: 4, color: Color(0x30000000), offset: Offset(0, 2))
+                    ],
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(28),
+                      topRight: Radius.circular(28),
+                      bottomLeft: Radius.circular(8),
+                      bottomRight: Radius.circular(8),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 10),
+                        child: IconButton(
+                          icon: const Icon(Icons.notifications_active_outlined, color: Colors.white, size: 32),
+                          onPressed: () async {
+                            await showDialog(
+                              context: context,
+                              builder: (dialogCtx) => const OknopowiadomienWidget(),
+                            );
+                          },
+                        ),
+                      ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          'assets/images/logo.jpg',
+                          width: 52,
+                          height: 52,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(Icons.calendar_month, color: Colors.white, size: 32);
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: IconButton(
+                          icon: const Icon(Icons.email_outlined, color: Colors.white, size: 32),
+                          onPressed: () async {
+                            context.read<AppState>().prepareShareList();
+                            await showDialog(
+                              context: context,
+                              builder: (dialogCtx) => const OknoprzekazuWidget(),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Container(
+                  width: double.infinity,
+                  height: 48,
+                  decoration: const BoxDecoration(
+                    gradient: AppTheme.languageGradient,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                      topRight: Radius.circular(8),
+                      bottomLeft: Radius.circular(28),
+                      bottomRight: Radius.circular(28),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Container(
+                        height: 35,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6EE1D4),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white70),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: lang,
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF15766E)),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF15766E)),
+                            items: const [
+                              DropdownMenuItem(value: 'pl', child: Text('PL  \u{1F1F5}\u{1F1F1}')),
+                              DropdownMenuItem(value: 'en', child: Text('EN  \u{1F1EC}\u{1F1E7}')),
+                              DropdownMenuItem(value: 'de', child: Text('DE  \u{1F1E9}\u{1F1EA}')),
+                              DropdownMenuItem(value: 'ru', child: Text('RU  \u{1F1F7}\u{1F1FA}')),
+                            ],
+                            onChanged: (newLang) {
+                              if (newLang != null) {
+                                context.read<AppState>().setLanguage(newLang);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 35,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            await showDialog(
+                              context: context,
+                              builder: (dialogCtx) => const InstrukcjaWidget(),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6EE1D4),
+                            foregroundColor: const Color(0xFF15766E),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              side: const BorderSide(color: Colors.white70),
+                            ),
+                          ),
+                          child: Text(
+                            AppTranslations.tr('info', lang),
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  AppTranslations.tr('calendar_title', lang),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF15998C)),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: lista.isEmpty
+                      ? const PustyWidget()
+                      : ListView.separated(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          itemCount: lista.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            return Wiersz1Widget(
+                              itemIndex: index,
+                              itemData: lista[index],
+                            );
+                          },
+                        ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24.0, top: 8.0),
+                  child: Container(
+                    width: double.infinity,
+                    height: 60,
+                    decoration: const BoxDecoration(
+                      gradient: AppTheme.bottomGradient,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(14),
+                        topRight: Radius.circular(14),
+                        bottomLeft: Radius.circular(28),
+                        bottomRight: Radius.circular(28),
+                      ),
+                    ),
+                    child: Center(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          await showModalBottomSheet(
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            context: context,
+                            builder: (ctx) => const EdytorwierszaWidget(),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF92F5ED),
+                          foregroundColor: const Color(0xFF15766E),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: Text(
+                          AppTranslations.tr('add_to_list', lang),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF15766E)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
