@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Rozpakowuje packed.txt na prawdziwe pliki projektu.
-Pomija pliki, ktore juz istnieja w repo."""
+NADPISUJE pliki utworzone przez flutter create."""
 import re
+import shutil
 from pathlib import Path
 
 packed_path = Path('packed.txt')
@@ -13,6 +14,18 @@ content = packed_path.read_text(encoding='utf-8').lstrip('\ufeff')
 lines = content.count('\n')
 print(f'Plik packed.txt: {len(content)} bajtow, {lines} linii')
 
+# USUN domyslne pliki flutter create, ktore moga kolidowac
+lib_path = Path('lib')
+if lib_path.exists():
+    print('Usuwam istniejacy folder lib/ (utworzony przez flutter create)')
+    shutil.rmtree(lib_path)
+
+# USUN domyslny pubspec.yaml
+pubspec = Path('pubspec.yaml')
+if pubspec.exists():
+    print('Usuwam istniejacy pubspec.yaml (utworzony przez flutter create)')
+    pubspec.unlink()
+
 markers = list(re.finditer(r'^===FILE:(.+?)===\s*$', content, re.MULTILINE))
 print(f'Znaleziono {len(markers)} markerow ===FILE:')
 
@@ -22,7 +35,6 @@ if not markers:
     raise SystemExit(1)
 
 created = 0
-skipped = 0
 for i, m in enumerate(markers):
     file_path = m.group(1).strip()
     start = m.end()
@@ -39,19 +51,24 @@ for i, m in enumerate(markers):
         file_content = file_content[:-1]
 
     p = Path(file_path)
-    if p.exists():
-        print(f'  -> {file_path} (POMINIETY - istnieje)')
-        skipped += 1
-        continue
-
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(file_content, encoding='utf-8')
     created += 1
     print(f'  -> {file_path} ({len(file_content)} bajtow)')
 
-print(f'Rozpakowano: {created} nowych, pominieto: {skipped} istniejacych.')
+print(f'Rozpakowano: {created} plikow.')
 
-if not Path('lib/main.dart').exists():
+# Weryfikacja - sprawdz czy nasz main.dart istnieje
+main_file = Path('lib/main.dart')
+if not main_file.exists():
     print('BLAD: lib/main.dart NIE istnieje!')
     raise SystemExit(1)
-print('OK: lib/main.dart istnieje')
+
+# Sprawdz czy to NASZ main.dart (nie domyslny flutterowy)
+main_content = main_file.read_text(encoding='utf-8')
+if 'listaurodzin' not in main_content and 'ListaUrodzinApp' not in main_content:
+    print('BLAD: lib/main.dart to domyslny plik Fluttera, nie nasz!')
+    print('Pierwsze 300 znakow:', repr(main_content[:300]))
+    raise SystemExit(1)
+
+print('OK: lib/main.dart to nasz plik')
