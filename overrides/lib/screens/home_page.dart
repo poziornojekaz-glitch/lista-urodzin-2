@@ -309,7 +309,8 @@ class _HomePageState extends State<HomePage> {
 // ─────────────────────────────────────────────
 //  Pomocniczy widget: ikonka w stylu przycisku
 //  - jasne turkusowe tło (jak "Info")
-//  - ciemny turkusowy zarys i ikona (jak "Info")
+//  - BIAŁE obramowanie (jak "Info" i "Wybór języka")
+//  - ciemny turkusowy kolor ikony (jak tekst "Info")
 //  - duża ikona (32 px)
 // ─────────────────────────────────────────────
 class _TopIconButton extends StatelessWidget {
@@ -323,7 +324,6 @@ class _TopIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Ciemny turkus – ten sam kolor co tekst przycisku "Info"
     const ciemnyTurkus = Color(0xFF15766E);
 
     return Material(
@@ -335,17 +335,17 @@ class _TopIconButton extends StatelessWidget {
           width: 46,
           height: 46,
           decoration: BoxDecoration(
-            color: const Color(0xFF6EE1D4), // jasny turkus jak "Info"
+            color: const Color(0xFF6EE1D4),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: ciemnyTurkus,
+              color: Colors.white70, // ← BIAŁE obramowanie (jak "Info")
               width: 1.5,
             ),
           ),
           child: Icon(
             icon,
-            color: ciemnyTurkus, // ciemny turkus jak tekst "Info"
-            size: 32,            // większa ikona (było 26)
+            color: ciemnyTurkus,
+            size: 32,
           ),
         ),
       ),
