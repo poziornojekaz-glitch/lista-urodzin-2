@@ -45,12 +45,11 @@ class Wiersz1Widget extends StatelessWidget {
     final String wiek =
         CustomFunctions.obliczWiekOsoby(itemData.datazapisz, lang);
 
-    // Pogrubienie: w600 dla wszystkiego
     const wagaTekstu = FontWeight.w600;
 
     return Container(
       width: double.infinity,
-      height: 84,
+      height: 70, // ← BYŁO 84, teraz 70
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -62,11 +61,13 @@ class Wiersz1Widget extends StatelessWidget {
       child: Row(
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 6.0),
+            padding: const EdgeInsets.only(left: 4.0),
             child: Checkbox(
               value: itemData.czyPowiadamiac,
               activeColor: AppTheme.primaryActive,
               side: const BorderSide(color: Color(0xFFBFC6CC), width: 2),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
               onChanged: (newVal) async {
                 final val = newVal ?? false;
                 await context.read<AppState>().togglePowiadamiac(itemIndex, val);
@@ -94,28 +95,25 @@ class Wiersz1Widget extends StatelessWidget {
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              padding: const EdgeInsets.symmetric(horizontal: 6.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Imię
                   Text(
                     itemData.tekst.isNotEmpty
                         ? itemData.tekst
                         : AppTranslations.tr('enter_name_or_event', lang),
                     style: const TextStyle(
-                      fontSize: 17,
+                      fontSize: 16,
                       fontWeight: wagaTekstu,
                       color: Color(0xFF2C3E50),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  // Data (60%) + Wiek (40%, wyrównany do lewej)
+                  const SizedBox(height: 2),
                   Row(
                     children: [
-                      // Data + rok (zajmuje 60% miejsca)
                       Expanded(
                         flex: 6,
                         child: Row(
@@ -126,7 +124,7 @@ class Wiersz1Widget extends StatelessWidget {
                                     ? formattedDate
                                     : 'Dodaj Datę',
                                 style: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: 14,
                                   fontWeight: wagaTekstu,
                                   color: dateColor,
                                 ),
@@ -134,11 +132,11 @@ class Wiersz1Widget extends StatelessWidget {
                               ),
                             ),
                             if (yearSuffix.isNotEmpty) ...[
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 5),
                               Text(
                                 yearSuffix,
                                 style: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: 14,
                                   fontWeight: wagaTekstu,
                                   color: dateColor,
                                 ),
@@ -147,7 +145,6 @@ class Wiersz1Widget extends StatelessWidget {
                           ],
                         ),
                       ),
-                      // Wiek (zajmuje 40% miejsca, wyrównany do LEWEJ)
                       Expanded(
                         flex: 4,
                         child: wiek.isNotEmpty
@@ -155,7 +152,7 @@ class Wiersz1Widget extends StatelessWidget {
                                 wiek,
                                 textAlign: TextAlign.left,
                                 style: const TextStyle(
-                                  fontSize: 15,
+                                  fontSize: 14,
                                   fontWeight: wagaTekstu,
                                   color: Color(0xFF556068),
                                 ),
@@ -169,7 +166,7 @@ class Wiersz1Widget extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(right: 12.0),
+            padding: const EdgeInsets.only(right: 10.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -208,7 +205,7 @@ class Wiersz1Widget extends StatelessWidget {
                   child: const Icon(
                     Icons.border_color_outlined,
                     color: Color(0xFF677681),
-                    size: 20,
+                    size: 19,
                   ),
                 ),
                 InkWell(
@@ -238,7 +235,7 @@ class Wiersz1Widget extends StatelessWidget {
                   child: const Icon(
                     Icons.close_outlined,
                     color: AppTheme.deleteRed,
-                    size: 22,
+                    size: 21,
                   ),
                 ),
               ],
