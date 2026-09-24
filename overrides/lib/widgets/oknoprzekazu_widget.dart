@@ -57,27 +57,19 @@ class _OknoprzekazuWidgetState extends State<OknoprzekazuWidget>
           ),
           child: Column(
             children: [
+              // ── Górny rząd z X (ujednolicony: 46×46 gradient) ──
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 12, 0),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    InkWell(
+                    _CloseButton(
                       onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.close,
-                            color: Colors.white, size: 22),
-                      ),
                     ),
                   ],
                 ),
               ),
+              // ── Zakładki ──
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
@@ -418,5 +410,36 @@ class _OknoprzekazuWidgetState extends State<OknoprzekazuWidget>
   void _toast(BuildContext context, String msg) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(msg)));
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Ujednolicony przycisk zamykania (X)
+//  - 46×46, gradient turkusowy
+//  - identyczny jak w OknoPowiadomien
+// ─────────────────────────────────────────────
+class _CloseButton extends StatelessWidget {
+  const _CloseButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF38D8CB), Color(0xFF6EE1D4)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.close, color: Colors.white, size: 28),
+      ),
+    );
   }
 }
