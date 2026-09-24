@@ -34,6 +34,9 @@ jobs:
       - name: Fix pubspec and prepare logo
         run: python3 .github/scripts/make_logo.py
 
+      - name: Pad logo for icon
+        run: python3 .github/scripts/pad_logo.py
+
       - name: Patch Android for awesome_notifications
         run: python3 .github/scripts/patch_android.py
 
