@@ -25,6 +25,9 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Install Pillow (Python)
+        run: pip install --quiet Pillow
+
       - name: Create Android platform files
         run: flutter create --platforms=android --project-name=lista_urodzin --org=com.lista_urodzin .
 
