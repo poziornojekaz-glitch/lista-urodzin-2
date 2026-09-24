@@ -57,7 +57,7 @@ class _OknoprzekazuWidgetState extends State<OknoprzekazuWidget>
           ),
           child: Column(
             children: [
-              // ── Górny rząd z X (ujednolicony: 46×46 gradient) ──
+              // ── Górny rząd z X (ujednolicony) ──
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                 child: Row(
@@ -415,8 +415,7 @@ class _OknoprzekazuWidgetState extends State<OknoprzekazuWidget>
 
 // ─────────────────────────────────────────────
 //  Ujednolicony przycisk zamykania (X)
-//  - 46×46, gradient turkusowy
-//  - identyczny jak w OknoPowiadomien
+//  - 44×44 solid #27B2A4 (jak w oknie powiadomień i Info)
 // ─────────────────────────────────────────────
 class _CloseButton extends StatelessWidget {
   const _CloseButton({required this.onTap});
@@ -425,20 +424,16 @@ class _CloseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
       onTap: onTap,
       child: Container(
-        width: 46,
-        height: 46,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF38D8CB), Color(0xFF6EE1D4)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
+          color: AppTheme.primary, // solid #27B2A4
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.close, color: Colors.white, size: 28),
+        child: const Icon(Icons.close, color: Colors.white, size: 26),
       ),
     );
   }
