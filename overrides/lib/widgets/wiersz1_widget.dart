@@ -49,7 +49,7 @@ class Wiersz1Widget extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      height: 70, // ← BYŁO 84, teraz 70
+      height: 70,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -61,7 +61,7 @@ class Wiersz1Widget extends StatelessWidget {
       child: Row(
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 4.0),
+            padding: const EdgeInsets.only(left: 6.0),
             child: Checkbox(
               value: itemData.czyPowiadamiac,
               activeColor: AppTheme.primaryActive,
@@ -93,9 +93,11 @@ class Wiersz1Widget extends StatelessWidget {
               },
             ),
           ),
+          // ── Większy odstęp między checkboxem a imieniem/datą ──
+          const SizedBox(width: 8),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6.0),
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
