@@ -50,7 +50,7 @@ class _HomePageState extends State<HomePage> {
                 // ── GÓRNY PASEK: DZWONEK, LOGO, KOPERTA ──
                 Container(
                   width: double.infinity,
-                  height: 60, // ← powrót do oryginału
+                  height: 60,
                   decoration: const BoxDecoration(
                     gradient: AppTheme.topGradient,
                     boxShadow: [
@@ -71,7 +71,7 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.only(left: 10),
+                        padding: const EdgeInsets.only(left: 12),
                         child: _TopIconButton(
                           icon: Icons.notifications_active_outlined,
                           onTap: () async {
@@ -83,25 +83,21 @@ class _HomePageState extends State<HomePage> {
                           },
                         ),
                       ),
-                      // ── Logo (większe, wystaje poza pasek) ──
-                      Transform.translate(
-                        offset: const Offset(0, 0),
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          width: 72,  // ← BYŁO 52, teraz 72
-                          height: 72, // ← BYŁO 52, teraz 72
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.calendar_month,
-                              color: Colors.white,
-                              size: 40,
-                            );
-                          },
-                        ),
+                      Image.asset(
+                        'assets/images/logo.png',
+                        width: 72,
+                        height: 72,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.calendar_month,
+                            color: Colors.white,
+                            size: 40,
+                          );
+                        },
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.only(right: 12),
                         child: _TopIconButton(
                           icon: Icons.email_outlined,
                           onTap: () async {
@@ -309,6 +305,8 @@ class _HomePageState extends State<HomePage> {
 
 // ─────────────────────────────────────────────
 //  Pomocniczy widget: ikonka w stylu przycisku
+//  - kwadrat 42×42 (mniejszy niż 46×46)
+//  - ikona 32px (bez zmian, jak było)
 // ─────────────────────────────────────────────
 class _TopIconButton extends StatelessWidget {
   const _TopIconButton({
@@ -326,14 +324,14 @@ class _TopIconButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(9),
         onTap: onTap,
         child: Container(
-          width: 46,
-          height: 46,
+          width: 42,  // ← BYŁO 46
+          height: 42, // ← BYŁO 46
           decoration: BoxDecoration(
             color: const Color(0xFF6EE1D4),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(9),
             border: Border.all(
               color: Colors.white70,
               width: 1.5,
@@ -342,7 +340,7 @@ class _TopIconButton extends StatelessWidget {
           child: Icon(
             icon,
             color: ciemnyTurkus,
-            size: 32,
+            size: 32, // ← BEZ ZMIAN (32px)
           ),
         ),
       ),
