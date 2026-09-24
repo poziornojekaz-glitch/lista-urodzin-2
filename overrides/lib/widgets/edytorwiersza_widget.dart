@@ -61,7 +61,7 @@ class _EdytorwierszaWidgetState extends State<EdytorwierszaWidget> {
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
-        top: topPadding, // ← dodany odstęp od paska systemowego
+        top: topPadding,
       ),
       child: Center(
         child: Material(
@@ -81,7 +81,6 @@ class _EdytorwierszaWidgetState extends State<EdytorwierszaWidget> {
             ),
             child: Column(
               children: [
-                // ── Górny rząd z X (ujednolicony: 46×46 gradient) ──
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
                   child: Row(
@@ -93,8 +92,6 @@ class _EdytorwierszaWidgetState extends State<EdytorwierszaWidget> {
                     ],
                   ),
                 ),
-
-                // ── Karta z polem tekstowym i podglądem daty ──
                 Container(
                   width: size.width * 0.88,
                   padding: const EdgeInsets.all(12),
@@ -193,9 +190,7 @@ class _EdytorwierszaWidgetState extends State<EdytorwierszaWidget> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
                 Container(
                   width: size.width * 0.84,
                   height: 4,
@@ -204,10 +199,7 @@ class _EdytorwierszaWidgetState extends State<EdytorwierszaWidget> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
-
                 const SizedBox(height: 4),
-
-                // ── Picker + Przełącznik roku ──
                 Expanded(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -254,8 +246,6 @@ class _EdytorwierszaWidgetState extends State<EdytorwierszaWidget> {
                     ],
                   ),
                 ),
-
-                // ── Przycisk OK ──
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12.0),
                   child: SizedBox(
@@ -363,20 +353,16 @@ class _CloseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
       onTap: onTap,
       child: Container(
-        width: 46,
-        height: 46,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF38D8CB), Color(0xFF6EE1D4)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
+          color: AppTheme.primary,
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.close, color: Colors.white, size: 28),
+        child: const Icon(Icons.close, color: Colors.white, size: 26),
       ),
     );
   }
