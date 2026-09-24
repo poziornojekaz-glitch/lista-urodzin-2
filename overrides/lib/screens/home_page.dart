@@ -70,7 +70,6 @@ class _HomePageState extends State<HomePage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // ── Przycisk powiadomień (Dzwonek) jako BUTTON ──
                       Padding(
                         padding: const EdgeInsets.only(left: 10),
                         child: _TopIconButton(
@@ -84,8 +83,6 @@ class _HomePageState extends State<HomePage> {
                           },
                         ),
                       ),
-
-                      // ── Logo aplikacji ──
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
@@ -102,8 +99,6 @@ class _HomePageState extends State<HomePage> {
                           },
                         ),
                       ),
-
-                      // ── Przycisk udostępniania (Koperta) jako BUTTON ──
                       Padding(
                         padding: const EdgeInsets.only(right: 10),
                         child: _TopIconButton(
@@ -225,7 +220,6 @@ class _HomePageState extends State<HomePage> {
 
                 const SizedBox(height: 16),
 
-                // ── Tytuł ──
                 Text(
                   AppTranslations.tr('calendar_title', lang),
                   textAlign: TextAlign.center,
@@ -238,7 +232,6 @@ class _HomePageState extends State<HomePage> {
 
                 const SizedBox(height: 12),
 
-                // ── Lista ──
                 Expanded(
                   child: lista.isEmpty
                       ? const PustyWidget()
@@ -256,7 +249,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                 ),
 
-                // ── DOLNY PASEK: DODAJ DO LISTY ──
                 Padding(
                   padding:
                       const EdgeInsets.only(bottom: 24.0, top: 8.0),
@@ -316,6 +308,9 @@ class _HomePageState extends State<HomePage> {
 
 // ─────────────────────────────────────────────
 //  Pomocniczy widget: ikonka w stylu przycisku
+//  - jasne turkusowe tło (jak "Info")
+//  - ciemny turkusowy zarys i ikona (jak "Info")
+//  - duża ikona (32 px)
 // ─────────────────────────────────────────────
 class _TopIconButton extends StatelessWidget {
   const _TopIconButton({
@@ -328,26 +323,29 @@ class _TopIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Ciemny turkus – ten sam kolor co tekst przycisku "Info"
+    const ciemnyTurkus = Color(0xFF15766E);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
         child: Container(
-          width: 44,
-          height: 44,
+          width: 46,
+          height: 46,
           decoration: BoxDecoration(
-            color: const Color(0x33FFFFFF), // białe półprzezroczyste tło
+            color: const Color(0xFF6EE1D4), // jasny turkus jak "Info"
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: const Color(0x99FFFFFF), // białe obramowanie (60%)
+              color: ciemnyTurkus,
               width: 1.5,
             ),
           ),
           child: Icon(
             icon,
-            color: Colors.white,
-            size: 26,
+            color: ciemnyTurkus, // ciemny turkus jak tekst "Info"
+            size: 32,            // większa ikona (było 26)
           ),
         ),
       ),
