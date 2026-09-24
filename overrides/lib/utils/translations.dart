@@ -43,6 +43,19 @@ class AppTranslations {
       'reminder_tomorrow': 'przypomnienie na jutro',
       'cancel': 'Anuluj',
       'load': 'Wczytaj',
+      'tab_share': 'Przekaż wybrane',
+      'tab_backup': 'Kopia zapasowa',
+      'backup_card_title': 'Zapisz kopię zapasową',
+      'backup_card_desc': 'Zapisz wszystkie wpisy do pliku, aby zachować je na telefonie, wysłać mailem lub zapisać na Dysku Google.',
+      'backup_save_btn': 'Zapisz kopię zapasową (plik)',
+      'restore_card_title': 'Dodaj listę z telefonu',
+      'restore_card_desc': 'Wczytaj wcześniej zapisaną kopię zapasową. Istniejące osoby nie zostaną zdublowane.',
+      'restore_pick_btn': 'Wybierz plik z telefonu',
+      'restore_paste_btn': 'Wklej ze schowka',
+      'import_success': 'Pomyślnie dodano nowe osoby: {n}',
+      'import_no_new': 'Wszystkie osoby z kopii znajdują się już na Twojej liście.',
+      'import_error': 'Nie udało się odczytać danych. Sprawdź, czy plik jest prawidłowy.',
+      'backup_success': 'Kopia zapasowa została przygotowana.',
     },
     'en': {
       'calendar_title': 'Events Calendar',
@@ -71,8 +84,8 @@ class AppTranslations {
           'The app is set up so that every year it automatically sends two notifications for each event:\n'
           '✅ the first at 18:00 the day before,\n'
           '✅ the second at 9:00 on the day of the event itself. 🔔\n\n'
-          '⚙️ You can always change and set the notification times yourself ⏰ (from 8:00 to 20:00) and choose on which day (the day before or the day of the event) the notification should be sent.\n\n'
-          '⚙️ You can also completely disable notifications for a specific event by tapping the ✅ on/off option next to the selected item in the list.\n\n'
+          '⚙️ You can always change and set the notification times yourself ⏰ (from 8:00 to 20:00) and choose on which day the notification should be sent.\n\n'
+          '⚙️ You can also completely disable notifications for a specific event by tapping the ✅ on/off option next to the selected item.\n\n'
           'For the app to work correctly, allow notifications.\n\n'
           'All entered data stays only in your phone memory and is never sent anywhere unless you decide to share it. ✉️\n\n'
           'Thanks to this, you will never miss an opportunity to wish your loved ones well. 🎁\n\n'
@@ -87,6 +100,19 @@ class AppTranslations {
       'reminder_tomorrow': 'reminder for tomorrow',
       'cancel': 'Cancel',
       'load': 'Import',
+      'tab_share': 'Share selected',
+      'tab_backup': 'Backup',
+      'backup_card_title': 'Save backup',
+      'backup_card_desc': 'Save all entries to a file to keep them on your phone, send via email, or save to Google Drive.',
+      'backup_save_btn': 'Save backup (file)',
+      'restore_card_title': 'Add list from phone',
+      'restore_card_desc': 'Load previously saved backup. Existing contacts will not be duplicated.',
+      'restore_pick_btn': 'Select file from phone',
+      'restore_paste_btn': 'Paste from clipboard',
+      'import_success': 'Successfully added new persons: {n}',
+      'import_no_new': 'All persons from the backup are already on your list.',
+      'import_error': 'Failed to read data. Check if the file is valid.',
+      'backup_success': 'Backup file has been created.',
     },
     'de': {
       'calendar_title': 'Ereigniskalender',
@@ -115,7 +141,7 @@ class AppTranslations {
           'Die App ist so eingestellt, dass sie jedes Jahr automatisch zwei Benachrichtigungen für jedes Ereignis sendet:\n'
           '✅ die erste um 18:00 Uhr am Vortag,\n'
           '✅ die zweite um 9:00 Uhr am Tag des Ereignisses. 🔔\n\n'
-          '⚙️ Sie können die Benachrichtigungszeiten jederzeit ändern ⏰ (von 8:00 bis 20:00 Uhr) und auswählen, an welchem Tag die Benachrichtigung gesendet werden soll.\n\n'
+          '⚙️ Sie können die Benachrichtigungszeiten jederzeit ändern ⏰ (von 8:00 bis 20:00 Uhr).\n\n'
           '⚙️ Sie können Benachrichtigungen für ein bestimmtes Ereignis auch vollständig deaktivieren, indem Sie auf die Option ✅ Ein/Aus neben dem Eintrag tippen.\n\n'
           'Damit die App ordnungsgemäß funktioniert, erlauben Sie Benachrichtigungen.\n\n'
           'Alle eingegebenen Daten bleiben ausschließlich im Speicher Ihres Telefons und werden nirgendwohin gesendet, es sei denn, Sie entscheiden sich, sie zu teilen. ✉️\n\n'
@@ -131,6 +157,19 @@ class AppTranslations {
       'reminder_tomorrow': 'Erinnerung für morgen',
       'cancel': 'Abbrechen',
       'load': 'Laden',
+      'tab_share': 'Ausgewählte teilen',
+      'tab_backup': 'Sicherung',
+      'backup_card_title': 'Sicherung speichern',
+      'backup_card_desc': 'Speichern Sie alle Einträge in einer Datei auf dem Telefon, per E-Mail oder auf Google Drive.',
+      'backup_save_btn': 'Sicherung speichern (Datei)',
+      'restore_card_title': 'Liste vom Handy hinzufügen',
+      'restore_card_desc': 'Laden Sie eine zuvor gespeicherte Sicherung. Vorhandene Personen werden nicht dupliziert.',
+      'restore_pick_btn': 'Datei vom Handy auswählen',
+      'restore_paste_btn': 'Aus Zwischenablage einfügen',
+      'import_success': 'Erfolgreich neue Personen hinzugefügt: {n}',
+      'import_no_new': 'Alle Personen aus der Sicherung sind bereits in Ihrer Liste.',
+      'import_error': 'Daten konnten nicht gelesen werden. Überprüfen Sie die Datei.',
+      'backup_success': 'Sicherung wurde vorbereitet.',
     },
     'ru': {
       'calendar_title': 'Календарь событий',
@@ -159,7 +198,7 @@ class AppTranslations {
           'Приложение настроено так, что каждый год автоматически отправляет два уведомления для каждого события:\n'
           '✅ первое в 18:00 накануне,\n'
           '✅ второе в 9:00 в день самого события. 🔔\n\n'
-          '⚙️ Вы всегда можете изменить время уведомлений ⏰ (с 8:00 до 20:00) и выбрать, в какой день отправить уведомление.\n\n'
+          '⚙️ Вы всегда можете изменить время уведомлений ⏰ (с 8:00 до 20:00) и выбрать день отправки.\n\n'
           '⚙️ Вы также можете полностью отключить уведомления для конкретного события, нажав на опцию ✅ вкл/выкл рядом с выбранной позицией.\n\n'
           'Чтобы приложение работало правильно, разрешите уведомления.\n\n'
           'Все введенные данные остаются исключительно в памяти телефона и никуда не отправляются, если вы сами не решите ими поделиться. ✉️\n\n'
@@ -175,6 +214,19 @@ class AppTranslations {
       'reminder_tomorrow': 'напоминание на завтра',
       'cancel': 'Отмена',
       'load': 'Загрузить',
+      'tab_share': 'Передать выбранные',
+      'tab_backup': 'Резервная копия',
+      'backup_card_title': 'Сохранить копию',
+      'backup_card_desc': 'Сохраните все записи в файл на телефоне, отправьте по почте или на Google Диск.',
+      'backup_save_btn': 'Сохранить копию (файл)',
+      'restore_card_title': 'Добавить список с телефона',
+      'restore_card_desc': 'Загрузите сохраненную резервную копию. Существующие записи не будут дублироваться.',
+      'restore_pick_btn': 'Выбрать файл с телефона',
+      'restore_paste_btn': 'Вставить из буфера',
+      'import_success': 'Успешно добавлено новых человек: {n}',
+      'import_no_new': 'Все люди из копии уже есть в вашем списке.',
+      'import_error': 'Не удалось прочитать данные. Проверьте файл.',
+      'backup_success': 'Резервная копия подготовлена.',
     },
   };
 
