@@ -305,8 +305,8 @@ class _HomePageState extends State<HomePage> {
 
 // ─────────────────────────────────────────────
 //  Pomocniczy widget: ikonka w stylu przycisku
-//  - kwadrat 42×42 (mniejszy niż 46×46)
-//  - ikona 32px (bez zmian, jak było)
+//  - ikona w ŁAGODNIEJSZYM odcieniu turkusu
+//  - obramowanie prawie białe (delikatne)
 // ─────────────────────────────────────────────
 class _TopIconButton extends StatelessWidget {
   const _TopIconButton({
@@ -319,7 +319,8 @@ class _TopIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const ciemnyTurkus = Color(0xFF15766E);
+    // Łagodny turkus – jaśniejszy niż #15766E, mniej kontrastowy
+    const lagodnyTurkus = Color(0xFF4AA8A0);
 
     return Material(
       color: Colors.transparent,
@@ -327,20 +328,20 @@ class _TopIconButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(9),
         onTap: onTap,
         child: Container(
-          width: 42,  // ← BYŁO 46
-          height: 42, // ← BYŁO 46
+          width: 42,
+          height: 42,
           decoration: BoxDecoration(
             color: const Color(0xFF6EE1D4),
             borderRadius: BorderRadius.circular(9),
             border: Border.all(
-              color: Colors.white70,
-              width: 1.5,
+              color: const Color(0x99FFFFFF), // delikatniejsze niż white70
+              width: 1.2,
             ),
           ),
           child: Icon(
             icon,
-            color: ciemnyTurkus,
-            size: 32, // ← BEZ ZMIAN (32px)
+            color: lagodnyTurkus, // ← stonowany turkus
+            size: 32,
           ),
         ),
       ),
