@@ -50,7 +50,7 @@ class _HomePageState extends State<HomePage> {
                 // ── GÓRNY PASEK: DZWONEK, LOGO, KOPERTA ──
                 Container(
                   width: double.infinity,
-                  height: 60,
+                  height: 60, // ← powrót do oryginału
                   decoration: const BoxDecoration(
                     gradient: AppTheme.topGradient,
                     boxShadow: [
@@ -83,18 +83,19 @@ class _HomePageState extends State<HomePage> {
                           },
                         ),
                       ),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
+                      // ── Logo (większe, wystaje poza pasek) ──
+                      Transform.translate(
+                        offset: const Offset(0, 0),
                         child: Image.asset(
                           'assets/images/logo.png',
-                          width: 52,
-                          height: 52,
+                          width: 72,  // ← BYŁO 52, teraz 72
+                          height: 72, // ← BYŁO 52, teraz 72
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
                             return const Icon(
                               Icons.calendar_month,
                               color: Colors.white,
-                              size: 32,
+                              size: 40,
                             );
                           },
                         ),
@@ -308,10 +309,6 @@ class _HomePageState extends State<HomePage> {
 
 // ─────────────────────────────────────────────
 //  Pomocniczy widget: ikonka w stylu przycisku
-//  - jasne turkusowe tło (jak "Info")
-//  - BIAŁE obramowanie (jak "Info" i "Wybór języka")
-//  - ciemny turkusowy kolor ikony (jak tekst "Info")
-//  - duża ikona (32 px)
 // ─────────────────────────────────────────────
 class _TopIconButton extends StatelessWidget {
   const _TopIconButton({
@@ -338,7 +335,7 @@ class _TopIconButton extends StatelessWidget {
             color: const Color(0xFF6EE1D4),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: Colors.white70, // ← BIAŁE obramowanie (jak "Info")
+              color: Colors.white70,
               width: 1.5,
             ),
           ),
