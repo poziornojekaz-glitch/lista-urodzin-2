@@ -57,7 +57,6 @@ class _OknoprzekazuWidgetState extends State<OknoprzekazuWidget>
           ),
           child: Column(
             children: [
-              // ── Górny rząd z X (ujednolicony) ──
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                 child: Row(
@@ -69,7 +68,6 @@ class _OknoprzekazuWidgetState extends State<OknoprzekazuWidget>
                   ],
                 ),
               ),
-              // ── Zakładki ──
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
@@ -135,6 +133,26 @@ class _OknoprzekazuWidgetState extends State<OknoprzekazuWidget>
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF248C80)),
           ),
+          const SizedBox(height: 6),
+
+          // ── PRZYCISKI: Zaznacz wszystkie / Odznacz wszystkie ──
+          if (shareList.isNotEmpty)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _miniButton(
+                  icon: Icons.check_box,
+                  label: AppTranslations.tr('select_all', lang),
+                  onTap: () => _setAllShareItems(state, true),
+                ),
+                _miniButton(
+                  icon: Icons.check_box_outline_blank,
+                  label: AppTranslations.tr('deselect_all', lang),
+                  onTap: () => _setAllShareItems(state, false),
+                ),
+              ],
+            ),
+
           const SizedBox(height: 8),
           Expanded(
             child: shareList.isEmpty
@@ -207,6 +225,37 @@ class _OknoprzekazuWidgetState extends State<OknoprzekazuWidget>
         ],
       ),
     );
+  }
+
+  // ── Mini przycisk pod listą "Zaznacz/Odznacz wszystkie" ──
+  Widget _miniButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return TextButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18, color: AppTheme.primaryDark),
+      label: Text(
+        label,
+        style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.primaryDark),
+      ),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  // ── Zaznacz / odznacz wszystkie pozycje na liście share ──
+  void _setAllShareItems(AppState state, bool value) {
+    for (int i = 0; i < state.tymczasowaListaShare.length; i++) {
+      state.toggleShareItem(i, value);
+    }
   }
 
   // ───────────────────────────────────────
@@ -415,7 +464,6 @@ class _OknoprzekazuWidgetState extends State<OknoprzekazuWidget>
 
 // ─────────────────────────────────────────────
 //  Ujednolicony przycisk zamykania (X)
-//  - 44×44 solid #27B2A4 (jak w oknie powiadomień i Info)
 // ─────────────────────────────────────────────
 class _CloseButton extends StatelessWidget {
   const _CloseButton({required this.onTap});
@@ -430,7 +478,7 @@ class _CloseButton extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: AppTheme.primary, // solid #27B2A4
+          color: AppTheme.primary,
           borderRadius: BorderRadius.circular(8),
         ),
         child: const Icon(Icons.close, color: Colors.white, size: 26),
