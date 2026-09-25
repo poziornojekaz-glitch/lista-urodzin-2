@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dodaje biale marginesy do logo.png aby zmiescil sie w okraglej ikonie."""
+"""Dodaje szare marginesy do logo.png aby zmiescil sie w okraglej ikonie."""
 from pathlib import Path
 from PIL import Image
 
@@ -12,13 +12,14 @@ if not src.exists():
 
 img = Image.open(src).convert('RGBA')
 
-# Zwiekszamy margines: obraz 1.7x wiekszy od oryginalu
-# (logo zajmie ~59% obszaru - bezpieczna strefa dla ikony adaptive)
+# Rozmiar 1.7x wiekszy od oryginalu (margines)
 w, h = img.size
 new_w = int(w * 1.7)
 new_h = int(h * 1.7)
 
-canvas = Image.new('RGBA', (new_w, new_h), (255, 255, 255, 255))
+# ── SZARE TŁO (zamiast białego) ──
+# #E0E0E0 = (224, 224, 224)
+canvas = Image.new('RGBA', (new_w, new_h), (224, 224, 224, 255))
 
 offset_x = (new_w - w) // 2
 offset_y = (new_h - h) // 2
