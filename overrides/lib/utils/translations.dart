@@ -56,6 +56,8 @@ class AppTranslations {
       'import_no_new': 'Wszystkie osoby z kopii znajdują się już na Twojej liście.',
       'import_error': 'Nie udało się odczytać danych. Sprawdź, czy plik jest prawidłowy.',
       'backup_success': 'Kopia zapasowa została przygotowana.',
+      'select_all': 'Zaznacz wszystkie',
+      'deselect_all': 'Odznacz wszystkie',
     },
     'en': {
       'calendar_title': 'Events Calendar',
@@ -113,6 +115,8 @@ class AppTranslations {
       'import_no_new': 'All persons from the backup are already on your list.',
       'import_error': 'Failed to read data. Check if the file is valid.',
       'backup_success': 'Backup file has been created.',
+      'select_all': 'Select all',
+      'deselect_all': 'Deselect all',
     },
     'de': {
       'calendar_title': 'Ereigniskalender',
@@ -170,6 +174,8 @@ class AppTranslations {
       'import_no_new': 'Alle Personen aus der Sicherung sind bereits in Ihrer Liste.',
       'import_error': 'Daten konnten nicht gelesen werden. Überprüfen Sie die Datei.',
       'backup_success': 'Sicherung wurde vorbereitet.',
+      'select_all': 'Alle auswählen',
+      'deselect_all': 'Alle abwählen',
     },
     'ru': {
       'calendar_title': 'Календарь событий',
@@ -227,6 +233,8 @@ class AppTranslations {
       'import_no_new': 'Все люди из копии уже есть в вашем списке.',
       'import_error': 'Не удалось прочитать данные. Проверьте файл.',
       'backup_success': 'Резервная копия подготовлена.',
+      'select_all': 'Выбрать все',
+      'deselect_all': 'Снять все',
     },
   };
 
